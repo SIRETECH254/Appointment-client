@@ -224,15 +224,15 @@ appointment-client/
 │   └── theme.ts                  # Brand colors (gold), typography, spacing
 │
 ├── api/                          # API client and domain modules
-│   ├── client.ts                 # Axios instance + interceptors
-│   ├── auth.ts
-│   ├── services.ts
-│   ├── appointments.ts
-│   ├── payments.ts
-│   ├── notifications.ts
-│   ├── availability.ts
-│   ├── contact.ts
-│   └── index.ts
+│   ├── client.ts                 # Axios instance + interceptors for auth, token refresh, and error handling
+│   ├── auth.ts                   # Auth-related API calls (login, register, etc.)
+│   ├── appointments.ts           # Appointment-related API calls (create, confirm, get my, etc.)
+│   ├── services.ts               # Service-related API calls (get all, get by ID)
+│   ├── availability.ts           # Availability-related API calls (get slots, get day availability)
+│   ├── payments.ts               # Payment-related API calls (initiate, service payment, get payment)
+│   ├── notifications.ts          # Notification-related API calls (get, mark as read, delete)
+│   ├── contact.ts                # Contact form submission API calls
+│   └── index.ts                  # Central export for all API modules
 │
 ├── store/                        # Redux store
 │   ├── index.ts
@@ -247,7 +247,8 @@ appointment-client/
 │   └── SocketProvider.tsx
 │
 ├── types/                        # Shared TypeScript types
-│   └── index.ts
+│   ├── index.ts                  # Re-exports for various types
+│   └── api.types.ts              # Interfaces and types for API requests and responses
 │
 ├── utils/
 │   ├── date.ts
@@ -924,21 +925,22 @@ The Appointment Client UI uses a **gold** theme for primary actions and accents,
 
 ### API Client
 
-- **File:** `api/client.ts` (or `services/api.ts`).
+- **File:** `api/client.ts`.
 - **Base URL:** From `process.env.EXPO_PUBLIC_API_URL` (e.g. `http://localhost:4500`).
-- **Request interceptor:** Attach `Authorization: Bearer <accessToken>` from Redux or AuthProvider.
-- **Response interceptor:** On 401, try refresh (e.g. `POST /api/auth/refresh-token` with refreshToken); on success update token and retry request; on failure clear auth and redirect to login. For other errors, optionally show toast or global error handler.
-- **Content-Type:** `application/json` for JSON bodies; for file uploads use FormData.
+- **Request interceptor:** Attaches `Authorization: Bearer <accessToken>` retrieved from `Expo SecureStore`.
+- **Response interceptor:** On `401 Unauthorized`, attempts to refresh the access token using the refresh token stored in `Expo SecureStore`. On successful refresh, retries the original request. On refresh failure, clears all stored tokens (`accessToken` and `refreshToken`) and logs out the user (handled by `AuthProvider`). For other errors, global error handling can trigger notifications or redirects.
+- **Content-Type:** `application/json` for JSON bodies; for file uploads, `FormData` is automatically handled with proper headers.
 
 ### Domain Modules
 
-- **auth:** login, logout, refreshToken, forgotPassword, resetPassword, verifyOtp, resendOtp, getMe.
-- **services:** getServices, getService.
-- **appointments:** getMyAppointments, getAppointmentById, createAppointment, confirmAppointment, rescheduleAppointment, cancelAppointment.
-- **payments:** initiatePayment, servicePayment, checkPaymentStatus, getPayment.
-- **notifications:** getNotifications, getUnreadCount, getUnread, getByCategory, getNotification, markAsRead, markAllAsRead, deleteNotification.
-- **availability:** getAvailableSlots, getDayAvailability.
-- **contact:** submitContact.
+- **auth:** login, register, verifyOTP, resendOTP, forgotPassword, resetPassword, refreshToken, getMe.
+- **user:** getProfile, updateProfile, changePassword, getNotificationPreferences, updateNotificationPreferences.
+- **services:** getAllServices, getService.
+- **appointments:** create, confirm, reschedule, cancel, getMyAppointments, getAppointment.
+- **availability:** getSlots, getDayAvailability.
+- **payments:** initiatePayment, servicePayment, getPayment.
+- **notifications:** getNotifications, getNotification, getUnreadCount, getUnreadNotifications, getNotificationsByCategory, markAsRead, markAllAsRead, deleteNotification.
+- **contact:** submitMessage.
 
 ### Environment Variables
 

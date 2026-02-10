@@ -1,0 +1,230 @@
+// appointment-client/types/api.types.ts
+
+// Common Types
+export interface PaginationParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  startDate?: string; // ISO 8601 date string
+  endDate?: string;   // ISO 8601 date string
+}
+
+// Auth Types
+export interface RegisterPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  phone: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface VerifyOTPPayload {
+  email: string;
+  otp: string;
+}
+
+export interface ResendOTPPayload {
+  email: string;
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  newPassword: string;
+}
+
+export interface RefreshTokenPayload {
+  refreshToken: string;
+}
+
+export interface User {
+  _id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  avatar?: string;
+  role: 'customer' | 'staff' | 'admin';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuthResponseData {
+  accessToken: string;
+  refreshToken: string;
+  user: User;
+}
+
+// User Types
+export interface UpdateProfilePayload {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  avatar?: string; // URL or base64
+}
+
+export interface ChangePasswordPayload {
+  currentPassword: string;
+  newPassword: string;
+}
+
+export interface UpdateNotificationPreferencesPayload {
+  email?: boolean;
+  sms?: boolean;
+  push?: boolean;
+  appointmentReminders?: boolean;
+  promotions?: boolean;
+}
+
+// Service Types
+export interface GetServicesParams extends PaginationParams {
+  status?: 'active' | 'inactive';
+}
+
+export interface Service {
+  _id: string;
+  name: string;
+  description: string;
+  duration: number; // minutes
+  fullPrice: number;
+  depositAmount: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Appointment Types
+export interface CreateAppointmentPayload {
+  staffId: string;
+  services: string[]; // Array of service IDs
+  startTime: string; // ISO8601 datetime
+  notes?: string;
+}
+
+export interface ConfirmAppointmentPayload {
+  paymentMethod: 'mpesa' | 'paystack';
+  phoneNumber: string;
+}
+
+export interface RescheduleAppointmentPayload {
+  newStartTime: string; // ISO8601 datetime
+  staffId?: string; // Optional: if staff also changes
+}
+
+export interface CancelAppointmentPayload {
+  reason?: string;
+}
+
+export interface GetMyAppointmentsParams extends PaginationParams {
+  status?: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show';
+  upcoming?: boolean;
+}
+
+export interface Appointment {
+  _id: string;
+  customerId: string;
+  staffId: string;
+  services: Service[]; // Populated services
+  startTime: string; // ISO8601 datetime
+  endTime: string; // ISO8601 datetime
+  status: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show';
+  bookingFeeAmount: number;
+  remainingAmount: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Availability Types
+export interface GetSlotsParams {
+  staffId: string;
+  serviceId: string | string[]; // Can be single ID or array of IDs
+  date: string; // YYYY-MM-DD
+}
+
+export interface AvailabilitySlot {
+  startTime: string; // HH:mm
+  endTime: string;   // HH:mm
+  available: boolean;
+}
+
+export interface GetDayAvailabilityParams {
+  staffId?: string;
+  date: string; // YYYY-MM-DD
+}
+
+export interface DayAvailability {
+  date: string; // YYYY-MM-DD
+  totalSlots: number;
+  availableSlots: number;
+  bookedSlots: number;
+}
+
+// Payment Types
+export interface InitiatePaymentPayload {
+  appointmentId: string;
+  paymentMethod: 'mpesa' | 'paystack';
+  phoneNumber: string;
+}
+
+export interface ServicePaymentPayload {
+  appointmentId: string;
+  paymentMethod: 'mpesa' | 'paystack';
+  phoneNumber: string;
+  amount: number;
+}
+
+export interface Payment {
+  _id: string;
+  appointmentId: string;
+  paymentMethod: 'mpesa' | 'paystack';
+  amount: number;
+  status: 'pending' | 'completed' | 'failed';
+  type: 'booking_fee' | 'service_payment';
+  checkoutRequestId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Notification Types
+export interface GetNotificationsParams extends PaginationParams {
+  isRead?: boolean;
+  category?: 'appointment' | 'payment' | 'system' | 'promotional';
+}
+
+export interface NotificationAction {
+  label: string;
+  type: 'link' | 'action';
+  value: string;
+}
+
+export interface Notification {
+  _id: string;
+  recipientId: string;
+  type: 'email' | 'sms' | 'push' | 'in_app';
+  category: 'appointment' | 'payment' | 'system' | 'promotional';
+  subject: string;
+  message: string;
+  isRead: boolean;
+  actions?: NotificationAction[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Contact Types
+export interface SubmitContactPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  subject: string;
+  message: string;
+}
