@@ -2,11 +2,11 @@
 
 ## Overview
 
-This document provides comprehensive documentation for Redux state management in the Appointment Admin application. The Redux setup uses Redux Toolkit for simplified state management and Redux Persist for state persistence across app restarts (browser sessions).
+This document provides comprehensive documentation for Redux state management in the Appointment Client application. The Redux setup uses Redux Toolkit for simplified state management and Redux Persist for state persistence across app restarts.
 
-**Reference Structure:** This implementation is based on the store structure from the SIRE-ADMIN project, adapted for the APPOINTMENT ADMIN project.
+**Reference Structure:** This implementation is based on the store structure from the SIRE-ADMIN project, adapted for the APPOINTMENT CLIENT project.
 
-**Location:** All Redux files are located in the `redux/` folder (under `src/redux/`).
+**Location:** All Redux files are located in the `redux/` folder.
 
 ---
 
@@ -90,17 +90,11 @@ The store is configured in `redux/index.ts`:
 ```typescript
 import { configureStore, combineReducers } from '@reduxjs/toolkit';
 import { persistStore, persistReducer } from 'redux-persist';
-// Custom storage adapter for redux-persist (localStorage with async API)
-const storage = {
-  getItem: (key: string): Promise<string | null> =>
-    Promise.resolve(localStorage.getItem(key)),
-  setItem: (key: string, value: string): Promise<void> =>
-    Promise.resolve(localStorage.setItem(key, value)),
-  removeItem: (key: string): Promise<void> =>
-    Promise.resolve(localStorage.removeItem(key)),
-};
+import AsyncStorage from '@react-native-async-storage/async-storage'; // Import AsyncStorage
+// Custom storage adapter for redux-persist (AsyncStorage for React Native)
+const storage = AsyncStorage;
 
-// Redux Persist configuration (localStorage for web)
+// Redux Persist configuration (AsyncStorage for React Native)
 const persistConfig = {
   key: 'root',
   storage,
@@ -124,7 +118,7 @@ export const store = configureStore({
         ignoredActions: ['persist/PERSIST', 'persist/REHYDRATE'],
       },
     }),
-  devTools: import.meta.env.DEV, // Enable Redux DevTools in development
+  devTools: __DEV__, // Enable Redux DevTools in development for React Native
 });
 
 export const persistor = persistStore(store);
@@ -260,21 +254,29 @@ The Redux Provider is typically set up in your root layout component, for exampl
 ```typescript
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
-import { store, persistor } from './redux'; // Adjust path as needed
-import { Slot } from 'expo-router'; // Assuming Expo Router
+import { store, persistor } from '../redux'; // Adjust path as needed for your _layout.tsx
+import { Stack } from 'expo-router'; // Assuming Expo Router, or your main navigation component
+import { ThemeProvider } from '@react-navigation/native'; // Example from your _layout.tsx
 
-// Your main App component or RootLayout
-function AppProviders() {
+// Your RootLayout component from app/_layout.tsx
+export default function RootLayout() {
+  // Assume useColorScheme and theme setup here
+  const colorScheme = useColorScheme(); // You would import this from '@/hooks/use-color-scheme';
+
   return (
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        {/* Your app's main content or Expo Router Slot */}
-        <Slot />
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            {/* Your Stack.Screen components */}
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          </Stack>
+        </ThemeProvider>
       </PersistGate>
     </Provider>
   );
 }
-export default AppProviders; // Export this to be used in your _layout.tsx
 ```
 
 ### Using Hooks in Components
@@ -386,7 +388,7 @@ async function handleLogin(email: string, password: string) {
       const { user, accessToken, refreshToken } = response.data.data;
 
       // Token storage may be handled by API client (e.g. axios interceptor)
-      // or explicitly: localStorage.setItem('accessToken', accessToken); etc.
+      // or explicitly: AsyncStorage.setItem('accessToken', accessToken); etc.
 
       dispatch(loginSuccess({ user, accessToken, refreshToken }));
     }
@@ -513,11 +515,12 @@ To add a new slice (e.g., `userSlice`, `appointmentSlice`):
 
 ## Redux DevTools
 
-Redux DevTools are enabled in development mode (`import.meta.env.DEV`). To use:
+Redux DevTools are enabled in development mode (`__DEV__` global variable). To use:
 
-1. Install the Redux DevTools browser extension for Chrome, Firefox, or Edge
-2. Open the app in development; the store will connect automatically
-3. Inspect actions, state, and time-travel debug from the DevTools panel
+1.  Ensure you have a React Native debugger open (e.g., Flipper, React Native Debugger).
+2.  The Redux store will connect automatically.
+3.  Inspect actions, state, and time-travel debug from the DevTools panel.
+    *Note: Browser extensions for Redux DevTools are typically for web applications. For React Native, use dedicated remote debugging tools.*
 
 ---
 
@@ -560,5 +563,5 @@ Redux DevTools are enabled in development mode (`import.meta.env.DEV`). To use:
 
 ---
 
-**Last Updated:** January 2025  
-**Version:** 1.0.0
+**Last Updated:** February 2026  
+**Version:** 1.1.0
