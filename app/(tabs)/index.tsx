@@ -1,10 +1,10 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native'; // Added Text, View imports
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+// import { ThemedText } from '@/components/themed-text'; // Removed
+// import { ThemedView } from '@/components/themed-view'; // Removed
 import { Link } from 'expo-router';
 
 export default function HomeScreen() {
@@ -17,29 +17,29 @@ export default function HomeScreen() {
           style={styles.reactLogo}
         />
       }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+      <View style={styles.titleContainer}> {/* Replaced ThemedView with View */}
+        <Text style={styles.title}>Welcome!</Text> {/* Replaced ThemedText with Text and applied title style */}
         <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
+      </View>
+      <View style={styles.stepContainer}> {/* Replaced ThemedView with View */}
+        <Text style={styles.subtitle}>Step 1: Try it</Text> {/* Replaced ThemedText with Text and applied subtitle style */}
+        <Text style={styles.defaultText}> {/* Replaced ThemedText with Text */}
+          Edit <Text style={styles.defaultSemiBold}>app/(tabs)/index.tsx</Text> to see changes. {/* Replaced ThemedText with Text */}
           Press{' '}
-          <ThemedText type="defaultSemiBold">
+          <Text style={styles.defaultSemiBold}> {/* Replaced ThemedText with Text */}
             {Platform.select({
               ios: 'cmd + d',
               android: 'cmd + m',
               web: 'F12',
             })}
-          </ThemedText>{' '}
+          </Text>{' '}
           to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
+        </Text>
+      </View>
+      <View style={styles.stepContainer}> {/* Replaced ThemedView with View */}
         <Link href="/modal">
           <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
+            <Text style={styles.subtitle}>Step 2: Explore</Text> {/* Replaced ThemedText with Text and applied subtitle style */}
           </Link.Trigger>
           <Link.Preview />
           <Link.Menu>
@@ -60,20 +60,20 @@ export default function HomeScreen() {
           </Link.Menu>
         </Link>
 
-        <ThemedText>
+        <Text style={styles.defaultText}> {/* Replaced ThemedText with Text */}
           {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
+        </Text>
+      </View>
+      <View style={styles.stepContainer}> {/* Replaced ThemedView with View */}
+        <Text style={styles.subtitle}>Step 3: Get a fresh start</Text> {/* Replaced ThemedText with Text and applied subtitle style */}
+        <Text style={styles.defaultText}> {/* Replaced ThemedText with Text */}
           {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
+          <Text style={styles.defaultSemiBold}>npm run reset-project</Text> to get a fresh{' '} {/* Replaced ThemedText with Text */}
+          <Text style={styles.defaultSemiBold}>app</Text> directory. This will move the current{' '} {/* Replaced ThemedText with Text */}
+          <Text style={styles.defaultSemiBold}>app</Text> to{' '} {/* Replaced ThemedText with Text */}
+          <Text style={styles.defaultSemiBold}>app-example</Text>. {/* Replaced ThemedText with Text */}
+        </Text>
+      </View>
     </ParallaxScrollView>
   );
 }
@@ -94,5 +94,24 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     position: 'absolute',
+  },
+  // Added styles from themed-text.tsx for direct use
+  defaultText: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  defaultSemiBold: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600',
+  },
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    lineHeight: 32,
+  },
+  subtitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
   },
 });
