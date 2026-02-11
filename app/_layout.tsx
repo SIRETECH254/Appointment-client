@@ -9,6 +9,8 @@ import { store, persistor } from '../redux';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // TanStack Query imports
 
+import { AuthProvider } from '../contexts/AuthContext'; // Import AuthProvider
+
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // Create a client
@@ -39,13 +41,15 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
         <PersistGate loading={null} persistor={persistor}>
-          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
+          <AuthProvider> {/* Wrap with AuthProvider */}
+            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </AuthProvider>
         </PersistGate>
       </Provider>
     </QueryClientProvider>
