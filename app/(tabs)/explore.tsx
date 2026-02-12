@@ -31,6 +31,7 @@ export default function TabTwoScreen() {
         </Text>
       </View>
       <Text style={styles.defaultText}>This app includes example code to help you get started.</Text> {/* Replaced ThemedText with Text */}
+      <Text className="text-blue-500 text-xl font-bold mt-4 underline ">Tailwind CSS is working!</Text>
       <Collapsible title="File-based routing">
         <Text style={styles.defaultText}> {/* Replaced ThemedText with Text */}
           This app has two screens:{' '}
