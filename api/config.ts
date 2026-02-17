@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { AxiosInstance, AxiosResponse, AxiosError, InternalAxiosRequestConfig } from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import { deleteToken, getToken, setToken } from '../storage/tokenStore';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:4500';
 
@@ -18,7 +18,7 @@ api.interceptors.request.use(
     try {
       // Access tokens are typically short-lived and can be stored in-memory
       // For refresh tokens, use SecureStore
-      const token = await SecureStore.getItemAsync('accessToken'); // Assuming accessToken is also stored securely
+      const token = await getToken('accessToken');
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
@@ -49,7 +49,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = await SecureStore.getItemAsync('refreshToken');
+        const refreshToken = await getToken('refreshToken');
         if (refreshToken) {
           // Attempt to refresh the token
           const response = await axios.post(`${API_BASE_URL}/api/auth/refresh-token`, {
@@ -57,7 +57,7 @@ api.interceptors.response.use(
           });
 
           const { accessToken } = response.data.data;
-          await SecureStore.setItemAsync('accessToken', accessToken);
+          await setToken('accessToken', accessToken);
 
           // Retry the original request with new token
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
@@ -66,8 +66,8 @@ api.interceptors.response.use(
       } catch (refreshError) {
         // Refresh token failed
         // For client-side, typically clear all tokens and force re-login
-        await SecureStore.deleteItemAsync('accessToken');
-        await SecureStore.deleteItemAsync('refreshToken');
+        await deleteToken('accessToken');
+        await deleteToken('refreshToken');
         // Do not redirect here; let the app decide based on guarded routes
         return Promise.reject(refreshError);
       }

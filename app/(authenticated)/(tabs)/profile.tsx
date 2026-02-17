@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Text, TouchableOpacity, View } from 'react-native';
 import { useAuth } from '../../../contexts/AuthContext';
 
 export default function ProfileScreen() {
@@ -10,139 +10,59 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Profile</Text>
+    <View className="flex-1 bg-white">
+      <View className="flex-1 p-6">
+        <View className="mb-8">
+          <Text className="font-inter text-3xl font-bold text-slate-900">Profile</Text>
         </View>
 
-        <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
+        <View className="mb-8">
+          <View className="items-center">
+            <View className="h-24 w-24 items-center justify-center rounded-full bg-brand-primary">
+              <Text className="font-inter text-3xl font-bold text-white">
                 {user?.firstName?.[0]?.toUpperCase() || 'U'}
                 {user?.lastName?.[0]?.toUpperCase() || ''}
               </Text>
             </View>
           </View>
 
-          <View style={styles.infoSection}>
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Name</Text>
-              <Text style={styles.value}>
+          <View className="mt-6 gap-4">
+            <View className="border-b border-gray-200 pb-4">
+              <Text className="font-inter text-sm font-semibold text-slate-500">Name</Text>
+              <Text className="mt-1 font-inter text-base text-slate-900">
                 {user?.firstName} {user?.lastName}
               </Text>
             </View>
 
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Email</Text>
-              <Text style={styles.value}>{user?.email || 'N/A'}</Text>
+            <View className="border-b border-gray-200 pb-4">
+              <Text className="font-inter text-sm font-semibold text-slate-500">Email</Text>
+              <Text className="mt-1 font-inter text-base text-slate-900">{user?.email || 'N/A'}</Text>
             </View>
 
             {user?.phone && (
-              <View style={styles.infoRow}>
-                <Text style={styles.label}>Phone</Text>
-                <Text style={styles.value}>{user.phone}</Text>
+              <View className="border-b border-gray-200 pb-4">
+                <Text className="font-inter text-sm font-semibold text-slate-500">Phone</Text>
+                <Text className="mt-1 font-inter text-base text-slate-900">{user.phone}</Text>
               </View>
             )}
 
-            <View style={styles.infoRow}>
-              <Text style={styles.label}>Role</Text>
-              <Text style={styles.value}>{user?.role || 'N/A'}</Text>
+            <View className="border-b border-gray-200 pb-4">
+              <Text className="font-inter text-sm font-semibold text-slate-500">Role</Text>
+              <Text className="mt-1 font-inter text-base text-slate-900">{user?.role || 'N/A'}</Text>
             </View>
           </View>
         </View>
 
-        <View style={styles.actionsSection}>
-          <Text style={styles.placeholderText}>
+        <View className="mb-8 rounded-xl bg-brand-tint p-4">
+          <Text className="text-center font-inter text-sm italic text-slate-600">
             Profile management features will be implemented here
           </Text>
         </View>
 
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Text style={styles.logoutButtonText}>Logout</Text>
+        <TouchableOpacity className="btn bg-brand-accent" onPress={handleLogout}>
+          <Text className="font-inter text-base font-semibold text-white">Logout</Text>
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-  },
-  content: {
-    flex: 1,
-    padding: 24,
-  },
-  header: {
-    marginBottom: 32,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#000000',
-  },
-  profileSection: {
-    marginBottom: 32,
-  },
-  avatarContainer: {
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: '#D4AF37',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    fontSize: 36,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  infoSection: {
-    gap: 16,
-  },
-  infoRow: {
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e5e5',
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666666',
-    marginBottom: 4,
-  },
-  value: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  actionsSection: {
-    marginBottom: 32,
-    padding: 16,
-    backgroundColor: '#FFF8E7',
-    borderRadius: 8,
-  },
-  placeholderText: {
-    fontSize: 14,
-    color: '#666666',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  logoutButton: {
-    backgroundColor: '#a33c3c',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  logoutButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});

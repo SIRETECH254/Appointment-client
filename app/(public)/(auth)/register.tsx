@@ -1,211 +1,233 @@
-import { Link } from 'expo-router';
-import { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Link, useRouter } from 'expo-router';
+import { ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAuth } from '../../../contexts/AuthContext';
 
 export default function RegisterScreen() {
-  const { register, isLoading, error } = useAuth();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const router = useRouter();
+  const { register, isLoading, error, clearError } = useAuth();
 
-  const handleRegister = async () => {
-    if (!firstName || !lastName || !email || !password || !confirmPassword) {
+  // Single form object to send as the register payload.
+  const [form, setForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [inlineError, setInlineError] = useState<string | null>(null);
+
+  // Shared input handler for all fields.
+  const handleInputChange = useCallback(
+    (name: keyof typeof form, value: string) => {
+      // Update the form and clear any visible errors.
+      setForm((previous) => ({ ...previous, [name]: value }));
+      if (error) {
+        clearError();
+      }
+      setInlineError(null);
+    },
+    [error, clearError],
+  );
+
+  // Derived flag for button state and validation.
+  const canSubmit = useMemo(
+    () =>
+      Boolean(
+        form.firstName.trim() &&
+        form.lastName.trim() &&
+        form.email.trim() &&
+        form.password &&
+        form.confirmPassword &&
+        form.password === form.confirmPassword,
+      ) &&
+      !isSubmitting &&
+      !isLoading,
+    [form, isSubmitting, isLoading],
+  );
+
+  // Form submission handler (validates + calls register).
+  const handleSubmit = useCallback(async () => {
+    const trimmedEmail = form.email.trim();
+    if (!form.firstName || !form.lastName || !trimmedEmail || !form.password || !form.confirmPassword) {
+      setInlineError('Please fill in all required fields.');
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (form.password !== form.confirmPassword) {
+      setInlineError('Passwords do not match.');
       return;
     }
 
-    const result = await register({
-      firstName,
-      lastName,
-      email,
-      phone: phone || undefined,
-      password,
-    });
+    // Clear old errors and start the button loader.
+    setInlineError(null);
+    setIsSubmitting(true);
 
-    if (result.success) {
-      // TODO: Navigate to OTP verification screen when implemented
-      // router.replace('/(public)/(auth)/verify-otp');
+    try {
+      // Send the form object as the register payload.
+      const result = await register({
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: trimmedEmail,
+        phone: form.phone || undefined,
+        password: form.password,
+      });
+      if (!result.success) {
+        setInlineError(result.error ?? 'Unable to register.');
+        return;
+      }
+
+      // Navigate to OTP verification screen.
+      router.push('/(public)/(auth)/verify-otp');
+    } finally {
+      // Always stop the loader.
+      setIsSubmitting(false);
     }
-  };
+  }, [form, register, router]);
+
+  // Prefer inline error over global auth error for display.
+  const bannerMessage = inlineError || error;
 
   return (
-    <View style={styles.container}>
-      <View style={styles.form}>
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>First Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your first name"
-            value={firstName}
-            onChangeText={setFirstName}
-            autoCapitalize="words"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Last Name</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your last name"
-            value={lastName}
-            onChangeText={setLastName}
-            autoCapitalize="words"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Email</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoComplete="email"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Phone (Optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your phone number"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-            autoComplete="tel"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Enter your password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password-new"
-          />
-        </View>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Confirm Password</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            autoCapitalize="none"
-            autoComplete="password-new"
-          />
-        </View>
-
-        {error && (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{error}</Text>
-          </View>
-        )}
-
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleRegister}
-          disabled={isLoading}>
-          <Text style={styles.buttonText}>
-            {isLoading ? 'Registering...' : 'Register'}
+    <ScrollView className="bg-white" contentContainerClassName="flex-grow">
+      <View className="auth-container">
+        {/* Header */}
+        <View className="auth-header">
+          <Text className="auth-kicker">Appointment Client</Text>
+          <Text className="auth-title">Create account</Text>
+          <Text className="auth-subtitle">
+            Sign up to get started with appointment bookings.
           </Text>
-        </TouchableOpacity>
-
-        <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Already have an account? </Text>
-          <Link href="/(public)/(auth)/login" style={styles.link}>
-            <Text style={styles.linkTextBold}>Login</Text>
-          </Link>
         </View>
+
+        {/* Form */}
+        <View className="auth-form w-full">
+          {/* First Name field */}
+          <View className="auth-field">
+            <Text className="label">First Name</Text>
+            <TextInput
+              value={form.firstName}
+              onChangeText={(value) => handleInputChange('firstName', value)}
+              autoCapitalize="words"
+              placeholder="Enter your first name"
+              className="input"
+            />
+          </View>
+
+          {/* Last Name field */}
+          <View className="auth-field">
+            <Text className="label">Last Name</Text>
+            <TextInput
+              value={form.lastName}
+              onChangeText={(value) => handleInputChange('lastName', value)}
+              autoCapitalize="words"
+              placeholder="Enter your last name"
+              className="input"
+            />
+          </View>
+
+          {/* Email field */}
+          <View className="auth-field">
+            <Text className="label">Email</Text>
+            <TextInput
+              value={form.email}
+              onChangeText={(value) => handleInputChange('email', value)}
+              autoCapitalize="none"
+              autoComplete="email"
+              keyboardType="email-address"
+              placeholder="user@example.com"
+              className="input"
+            />
+          </View>
+
+          {/* Phone field (optional) */}
+          <View className="auth-field">
+            <Text className="label">Phone (Optional)</Text>
+            <TextInput
+              value={form.phone}
+              onChangeText={(value) => handleInputChange('phone', value)}
+              keyboardType="phone-pad"
+              autoComplete="tel"
+              placeholder="Enter your phone number"
+              className="input"
+            />
+          </View>
+
+          {/* Password field */}
+          <View className="auth-field">
+            <Text className="label">Password</Text>
+            <View className="relative">
+              <TextInput
+                value={form.password}
+                onChangeText={(value) => handleInputChange('password', value)}
+                autoComplete="password-new"
+                secureTextEntry={!isPasswordVisible}
+                placeholder="••••••••"
+                className="input-password"
+              />
+              <TouchableOpacity
+                onPress={() => setIsPasswordVisible((previous) => !previous)}
+                className="input-toggle-icon"
+                accessibilityLabel={isPasswordVisible ? 'Hide password' : 'Show password'}>
+                <MaterialIcons
+                  name={isPasswordVisible ? 'visibility-off' : 'visibility'}
+                  size={20}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Confirm Password field */}
+          <View className="auth-field">
+            <Text className="label">Confirm Password</Text>
+            <View className="relative">
+              <TextInput
+                value={form.confirmPassword}
+                onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                autoComplete="password-new"
+                secureTextEntry={!isConfirmPasswordVisible}
+                placeholder="Confirm your password"
+                className="input-password"
+              />
+              <TouchableOpacity
+                onPress={() => setIsConfirmPasswordVisible((previous) => !previous)}
+                className="input-toggle-icon"
+                accessibilityLabel={isConfirmPasswordVisible ? 'Hide confirm password' : 'Show confirm password'}>
+                <MaterialIcons
+                  name={isConfirmPasswordVisible ? 'visibility-off' : 'visibility'}
+                  size={20}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Error banner */}
+          {bannerMessage ? (
+            <Text className="auth-inline-message-error">{bannerMessage}</Text>
+          ) : null}
+
+          {/* Submit button */}
+          <TouchableOpacity
+            onPress={handleSubmit}
+            disabled={!canSubmit}
+            className={`auth-button ${!canSubmit ? 'opacity-50' : ''}`}>
+            {isSubmitting ? 'Registering...' : 'Register'}
+          </TouchableOpacity>
+        </View>
+
+        <Link href="/(public)/(auth)/login" className="auth-footer-link">
+          <Text className="text-center text-sm text-gray-500">
+            Already have an account? <Text className="font-semibold text-brand-primary">Sign in</Text>
+          </Text>
+        </Link>
       </View>
-    </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    padding: 24,
-  },
-  form: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#000000',
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#e5e5e5',
-    borderRadius: 8,
-    padding: 16,
-    fontSize: 16,
-    backgroundColor: '#ffffff',
-  },
-  errorContainer: {
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: '#FFF8E7',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#a33c3c',
-  },
-  errorText: {
-    color: '#a33c3c',
-    fontSize: 14,
-  },
-  button: {
-    backgroundColor: '#D4AF37',
-    paddingVertical: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  linkContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  linkText: {
-    fontSize: 14,
-    color: '#666666',
-  },
-  linkTextBold: {
-    fontSize: 14,
-    color: '#D4AF37',
-    fontWeight: '600',
-  },
-  link: {
-    // Link component styling
-  },
-});

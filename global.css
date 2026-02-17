@@ -99,7 +99,7 @@
 
 
   .auth-header {
-    @apply text-center;
+    @apply text-center flex flex-col items-center justify-center;
   }
 
   .auth-kicker {
@@ -115,7 +115,7 @@
   }
 
   .auth-form {
-    @apply mt-8 max-w-5xl space-y-5;
+    @apply mt-8 max-w-lg space-y-5;
   }
 
   .auth-field {
@@ -139,15 +139,15 @@
   }
 
   .auth-remember {
-    @apply flex items-center gap-2 text-slate-600;
+    @apply flex flex-row items-center gap-2 text-slate-600;
   }
 
   .auth-actions {
-    @apply flex items-center justify-between text-sm;
+    @apply flex flex-row items-center justify-between text-sm;
   }
 
   .auth-button {
-    @apply w-full rounded-xl bg-brand-primary py-3 text-sm font-semibold text-white transition hover:bg-brand-accent disabled:cursor-not-allowed disabled:bg-slate-300;
+    @apply w-full rounded-xl bg-brand-primary py-3 text-sm font-semibold text-white transition hover:bg-brand-accent text-center disabled:cursor-not-allowed disabled:bg-slate-300;
   }
 
   .auth-inline-message {

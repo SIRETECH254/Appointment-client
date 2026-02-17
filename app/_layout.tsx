@@ -34,21 +34,27 @@ const queryClient = new QueryClient({
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
+  const appShell = (
+    <AuthProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(public)" options={{ headerShown: false }} />
+          <Stack.Screen name="(authenticated)" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </AuthProvider>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       <Provider store={store}>
-        <PersistGate loading={null} persistor={persistor}>
-          <AuthProvider>
-            <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(public)" options={{ headerShown: false }} />
-                <Stack.Screen name="(authenticated)" options={{ headerShown: false }} />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <StatusBar style="auto" />
-            </ThemeProvider>
-          </AuthProvider>
-        </PersistGate>
+        {persistor ? (
+          <PersistGate loading={null} persistor={persistor}>{appShell}</PersistGate>
+        ) : (
+          appShell
+        )}
       </Provider>
     </QueryClientProvider>
   );

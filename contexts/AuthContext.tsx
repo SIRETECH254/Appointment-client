@@ -1,8 +1,8 @@
 import { createContext, useContext, useEffect, type ReactNode } from 'react';
 import { useRouter } from 'expo-router'; // Changed from react-router-dom
-import * as SecureStore from 'expo-secure-store'; // For sensitive tokens
 import AsyncStorage from '@react-native-async-storage/async-storage'; // For user object
 import { authAPI, userAPI } from '../api';
+import { deleteToken, getToken, setToken } from '../storage/tokenStore';
 import {
   loginStart,
   loginSuccess,
@@ -74,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const initializeAuth = async () => {
       try {
         dispatch(setLoading(true)); // Start loading for auth initialization
-        const token = await SecureStore.getItemAsync('accessToken');
+        const token = await getToken('accessToken');
         const storedUserString = await AsyncStorage.getItem('user');
 
         // 1) Rehydrate immediately from storage so state survives app restarts.
@@ -134,8 +134,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authAPI.login(credentials);
       const { user: userData, accessToken, refreshToken } = response.data.data;
 
-      await SecureStore.setItemAsync('accessToken', accessToken);
-      await SecureStore.setItemAsync('refreshToken', refreshToken);
+      await setToken('accessToken', accessToken);
+      await setToken('refreshToken', refreshToken);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
 
       dispatch(
@@ -181,8 +181,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await authAPI.verifyOTP(otpData);
       const { user: userData, accessToken, refreshToken } = response.data.data;
 
-      await SecureStore.setItemAsync('accessToken', accessToken);
-      await SecureStore.setItemAsync('refreshToken', refreshToken);
+      await setToken('accessToken', accessToken);
+      await setToken('refreshToken', refreshToken);
       await AsyncStorage.setItem('user', JSON.stringify(userData));
 
       dispatch(
@@ -280,8 +280,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     } catch (logoutError) {
       console.error('Logout error:', logoutError);
     } finally {
-      await SecureStore.deleteItemAsync('accessToken');
-      await SecureStore.deleteItemAsync('refreshToken');
+      await deleteToken('accessToken');
+      await deleteToken('refreshToken');
       await AsyncStorage.removeItem('user');
 
       dispatch(logoutAction());

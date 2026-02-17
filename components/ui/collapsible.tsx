@@ -1,5 +1,5 @@
 import { PropsWithChildren, useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native'; // Added Text, View, removed ThemedText, ThemedView imports
+import { Text, TouchableOpacity, View } from 'react-native'; // Added Text, View, removed ThemedText, ThemedView imports
 
 // import { ThemedText } from '@/components/themed-text'; // Removed
 // import { ThemedView } from '@/components/themed-view'; // Removed
@@ -16,7 +16,7 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
   return (
     <View> {/* Replaced ThemedView with View */}
       <TouchableOpacity
-        style={styles.heading}
+        className="flex-row items-center gap-2"
         onPress={() => setIsOpen((value) => !value)}
         activeOpacity={0.8}>
         <IconSymbol
@@ -27,26 +27,9 @@ export function Collapsible({ children, title }: PropsWithChildren & { title: st
           style={{ transform: [{ rotate: isOpen ? '90deg' : '0deg' }] }}
         />
 
-        <Text style={styles.defaultSemiBold}>{title}</Text> {/* Replaced ThemedText with Text and applied styles */}
+        <Text className="font-inter text-base font-semibold">{title}</Text> {/* Replaced ThemedText with Text and applied styles */}
       </TouchableOpacity>
-      {isOpen && <View style={styles.content}>{children}</View>} {/* Replaced ThemedView with View */}
+      {isOpen && <View className="mt-2 ml-6">{children}</View>} {/* Replaced ThemedView with View */}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  heading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  content: {
-    marginTop: 6,
-    marginLeft: 24,
-  },
-  defaultSemiBold: { // Added defaultSemiBold style based on themed-text.tsx
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-  },
-});

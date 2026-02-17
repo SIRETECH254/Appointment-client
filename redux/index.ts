@@ -4,8 +4,17 @@ import AsyncStorage from '@react-native-async-storage/async-storage'; // Import 
 import authReducer from './slices/authSlice';
 import type { RootState } from './types';
 
-// Custom storage adapter for redux-persist (AsyncStorage for React Native)
-const storage = AsyncStorage;
+const isServer = typeof window === 'undefined';
+
+const createNoopStorage = () => {
+  return {
+    getItem: async (_key: string) => null,
+    setItem: async (_key: string, value: string) => value,
+    removeItem: async (_key: string) => undefined,
+  };
+};
+
+const storage = isServer ? createNoopStorage() : AsyncStorage;
 
 // Redux Persist configuration (AsyncStorage for React Native)
 const persistConfig = {
@@ -34,7 +43,7 @@ export const store = configureStore({
   devTools: __DEV__, // Use __DEV__ for React Native
 });
 
-export const persistor = persistStore(store);
+export const persistor = isServer ? null : persistStore(store);
 
 export type AppDispatch = typeof store.dispatch;
 export type { RootState };
