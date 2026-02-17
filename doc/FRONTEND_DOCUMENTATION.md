@@ -152,37 +152,50 @@
 ```
 appointment-client/
 ├── app/                          # Expo Router file-based routes
-│   ├── _layout.tsx              # Root layout
-│   ├── (auth)/                  # Auth stack (login, register, etc.)
-│   │   ├── _layout.tsx
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   ├── verify-otp.tsx
-│   │   ├── forgot-password.tsx
-│   │   └── reset-password/[token].tsx
-│   ├── (tabs)/                  # Main app tabs
-│   │   ├── _layout.tsx          # Tab navigator
-│   │   ├── index.tsx            # Home/Dashboard
-│   │   ├── services.tsx         # Services list
-│   │   ├── appointments.tsx   # My Appointments
-│   │   └── profile.tsx          # Profile
-│   ├── book/                    # Booking flow
-│   │   ├── _layout.tsx
-│   │   ├── select-service.tsx
-│   │   ├── select-staff.tsx
-│   │   ├── select-slot.tsx
-│   │   └── confirm.tsx
-│   ├── appointments/
-│   │   ├── [id].tsx             # Appointment details
-│   │   └── [id]/payment.tsx    # Payment screen
-│   ├── payments/
-│   │   ├── [id].tsx             # Payment status
-│   │   └── status/[checkoutRequestId].tsx
-│   ├── notifications/
-│   │   ├── index.tsx            # Notifications list
-│   │   └── [id].tsx             # Notification details
-│   ├── contact.tsx              # Contact/Support
-│   └── +not-found.tsx          # 404 screen
+│   ├── _layout.tsx              # Root layout for providers
+│   ├── +not-found.tsx           # 404 screen
+│   │
+│   ├── (public)/                # Screens accessible without login
+│   │   ├── _layout.tsx          # Public layout
+│   │   ├── index.tsx            # Landing/Home page
+│   │   ├── contact.tsx          # Contact/Support page
+│   │   ├── services.tsx         # Services list (now public)
+│   │   │
+│   │   └── (auth)/              # Authentication flow screens
+│   │       ├── _layout.tsx
+│   │       ├── login.tsx
+│   │       ├── register.tsx
+│   │       ├── verify-otp.tsx
+│   │       ├── forgot-password.tsx
+│   │       └── reset-password/[token].tsx
+│   │
+│   └── (authenticated)/         # Screens requiring login
+│       ├── _layout.tsx          # Authenticated layout
+│       │
+│       ├── (tabs)/              # Main app tabs (without services.tsx)
+│       │   ├── _layout.tsx      # Tab navigator
+│       │   ├── index.tsx        # Home/Dashboard
+│       │   ├── appointments.tsx # My Appointments
+│       │   └── profile.tsx      # Profile
+│       │
+│       ├── book/                # Booking flow
+│       │   ├── _layout.tsx
+│       │   ├── select-service.tsx
+│       │   ├── select-staff.tsx
+│       │   ├── select-slot.tsx
+│       │   └── confirm.tsx
+│       │
+│       ├── appointments/
+│       │   ├── [id].tsx         # Appointment details
+│       │   └── [id]/payment.tsx # Payment screen
+│       │
+│       ├── payments/
+│       │   ├── [id].tsx         # Payment status
+│       │   └── status/[checkoutRequestId].tsx
+│       │
+│       └── notifications/
+│           ├── index.tsx        # Notifications list
+│           └── [id].tsx         # Notification details
 │
 ├── components/
 │   ├── ui/                      # Base UI components
@@ -779,15 +792,19 @@ export const BrandColors = {
 
 ### Route Hierarchy
 
-- **Auth:** `/(auth)/login`, `/(auth)/register`, `/(auth)/verify-otp`, `/(auth)/forgot-password`, `/(auth)/reset-password/[token]`
-- **Main Tabs:** `/(tabs)/` (index/home, services, appointments, profile)
-- **Booking:** `/book/select-service`, `/book/select-staff`, `/book/select-slot`, `/book/confirm`
-- **Appointments:** `/appointments/[id]`, `/appointments/[id]/payment`
-- **Payments:** `/payments/status/[checkoutRequestId]`
-- **Notifications:** `/notifications`, `/notifications/[id]`
-- **Profile:** `/profile/edit`, `/profile/change-password`
-- **Contact:** `/contact`
+- **Public Routes:**
+  - **Auth Flow:** `/(public)/(auth)/login`, `/(public)/(auth)/register`, `/(public)/(auth)/verify-otp`, `/(public)/(auth)/forgot-password`, `/(public)/(auth)/reset-password/[token]`
+  - **Main Public Pages:** `/(public)/`, `/(public)/contact`, `/(public)/services`
+- **Authenticated Routes:**
+  - **Main Tabs:** `/(authenticated)/(tabs)/` (index/home, appointments, profile)
+  - **Booking:** `/(authenticated)/book/select-service`, `/(authenticated)/book/select-staff`, `/(authenticated)/book/select-slot`, `/(authenticated)/book/confirm`
+  - **Appointments:** `/(authenticated)/appointments/[id]`, `/(authenticated)/appointments/[id]/payment`
+  - **Payments:** `/(authenticated)/payments/status/[checkoutRequestId]`
+  - **Notifications:** `/(authenticated)/notifications`, `/(authenticated)/notifications/[id]`
+  - **Profile Management:** `/(authenticated)/profile/edit`, `/(authenticated)/profile/change-password`
+  - **Others:** `/(authenticated)/modal`
 - **404:** `+not-found`
+
 
 ### Auth Guard Pattern
 
@@ -801,13 +818,42 @@ export const BrandColors = {
 ```
 app/
 ├── _layout.tsx                 # Root layout with providers
-├── (auth)/
-│   ├── _layout.tsx            # Auth stack navigator
-│   └── login.tsx
-├── (tabs)/
-│   ├── _layout.tsx            # Tab navigator
-│   └── index.tsx
-└── +not-found.tsx             # 404 screen
+├── +not-found.tsx              # 404 screen
+├── (public)/                   # Screens accessible without login
+│   ├── _layout.tsx             # Public layout
+│   ├── index.tsx               # Landing/Home page
+│   ├── contact.tsx             # Contact/Support page
+│   ├── services.tsx            # Services list (now public)
+│   └── (auth)/                 # Authentication flow screens
+│       ├── _layout.tsx
+│       ├── login.tsx
+│       ├── register.tsx
+│       ├── verify-otp.tsx
+│       ├── forgot-password.tsx
+│       └── reset-password/[token].tsx
+├── (authenticated)/            # Screens requiring login
+│   ├── _layout.tsx             # Authenticated layout
+│   ├── modal.tsx               # Global modal (e.g., for authenticated actions)
+│   ├── (tabs)/                 # Main app tabs (without services.tsx)
+│   │   ├── _layout.tsx         # Tab navigator
+│   │   ├── index.tsx
+│   │   ├── appointments.tsx
+│   │   └── profile.tsx
+│   ├── book/                   # Booking flow
+│   │   ├── _layout.tsx
+│   │   ├── select-service.tsx
+│   │   ├── select-staff.tsx
+│   │   ├── select-slot.tsx
+│   │   └── confirm.tsx
+│   ├── appointments/
+│   │   ├── [id].tsx
+│   │   └── [id]/payment.tsx
+│   ├── payments/
+│   │   ├── [id].tsx
+│   │   └── status/[checkoutRequestId].tsx
+│   └── notifications/
+│       ├── index.tsx
+│       └── [id].tsx
 ```
 
 ---
