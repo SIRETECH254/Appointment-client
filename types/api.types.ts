@@ -197,8 +197,8 @@ export interface Payment {
 
 // Notification Types
 export interface GetNotificationsParams extends PaginationParams {
-  isRead?: boolean;
-  category?: 'appointment' | 'payment' | 'system' | 'promotional';
+  isUnread?: boolean;
+  category?: 'appointment' | 'payment' | 'system' | 'promotional' | 'general';
 }
 
 export interface NotificationAction {
@@ -209,15 +209,21 @@ export interface NotificationAction {
 
 export interface Notification {
   _id: string;
-  recipientId: string;
+  id: string;
+  recipient: string;
+  recipientModel: string;
   type: 'email' | 'sms' | 'push' | 'in_app';
-  category: 'appointment' | 'payment' | 'system' | 'promotional';
+  category: 'appointment' | 'payment' | 'system' | 'promotional' | 'general';
   subject: string;
   message: string;
-  isRead: boolean;
+  status: string;
+  isUnread: boolean;
+  isRead?: boolean;
   actions?: NotificationAction[];
   createdAt: string;
   updatedAt: string;
+  sentAt: string;
+  __v?: number;
 }
 
 // Contact Types

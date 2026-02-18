@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGetUnreadNotificationCount } from '../../tanstack/useNotifications';
 
 type NavbarProps = {
   isSidebarOpen: boolean;
@@ -14,7 +15,10 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [unreadCount] = useState(0); // Placeholder for notification count
+
+  // Connect to the unread count API
+  const { data: unreadCountData } = useGetUnreadNotificationCount();
+  const unreadCount = unreadCountData?.unreadCount || 0;
 
   // Check if screen is large (lg breakpoint - 1024px)
   const [screenWidth, setScreenWidth] = useState(Dimensions.get('window').width);
@@ -53,8 +57,8 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
   };
 
   const handleNotifications = () => {
-    // TODO: Navigate to notifications when implemented
-    // router.push('/(authenticated)/notifications');
+    setIsMenuOpen(false);
+    router.push('/(authenticated)/notifications');
   };
 
   return (

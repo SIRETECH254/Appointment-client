@@ -24,7 +24,7 @@ export const useGetNotification = (notificationId: string) => {
     queryKey: ['notifications', notificationId],
     queryFn: async () => {
       const response = await notificationAPI.getNotification(notificationId);
-      return response.data.data;
+      return response.data.data.notification;
     },
     enabled: !!notificationId,
     staleTime: DEFAULT_STALE_TIME,

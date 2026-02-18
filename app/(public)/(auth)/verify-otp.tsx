@@ -121,6 +121,8 @@ export default function VerifyOTPScreen() {
   }, [resendCountdown]);
 
   // bannerMessage: Determines which error message to display (inline or global auth error).
+  const bannerMessage = inlineError || error;
+
   return (
     <ScrollView className="bg-white" contentContainerClassName="flex-grow">
       <View className="auth-container">
