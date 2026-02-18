@@ -19,7 +19,7 @@ export const useGetProfile = () => {
     queryKey: ['user', 'profile'],
     queryFn: async () => {
       const response = await userAPI.getProfile();
-      return response.data.data;
+      return response.data.data.user;
     },
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
@@ -32,8 +32,13 @@ export const useUpdateProfile = () => {
 
   return useMutation({
     mutationFn: async (profileData: UpdateProfilePayload | FormData) => {
-      const response = await userAPI.updateProfile(profileData);
-      return response.data.data;
+      try {
+        const response = await userAPI.updateProfile(profileData);
+        return response.data.data;
+      } catch (error: any) {
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to update profile.';
+        throw new Error(errorMessage);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
