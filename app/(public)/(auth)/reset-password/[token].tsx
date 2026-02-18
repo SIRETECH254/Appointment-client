@@ -10,19 +10,23 @@ type InlineMessage = {
 };
 
 export default function ResetPasswordScreen() {
+  // useLocalSearchParams to get the reset token from the URL.
   const { token } = useLocalSearchParams<{ token: string }>();
   const router = useRouter();
+  // useAuth provides resetPassword function, global error state, and error clearing.
   const { resetPassword, error, clearError } = useAuth();
 
-  // Single form object to drive the payload and validations.
+  // State for form inputs (password, confirmPassword), password visibility, and submission status.
   const [form, setForm] = useState({ password: '', confirmPassword: '' });
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  // State for displaying inline error/success messages.
   const [inlineMessage, setInlineMessage] = useState<InlineMessage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Ref for managing the redirect timer.
   const redirectTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Clean up the delayed redirect on unmount.
+  // useEffect: Cleans up the delayed redirect timer on component unmount.
   useEffect(() => {
     return () => {
       if (redirectTimer.current) {
@@ -31,20 +35,21 @@ export default function ResetPasswordScreen() {
     };
   }, []);
 
-  // Shared input handler for all fields.
+  // handleInputChange: Updates form state when TextInput components' values change.
   const handleInputChange = useCallback(
     (name: keyof typeof form, value: string) => {
       // Update form and clear any errors.
       setForm((previous) => ({ ...previous, [name]: value }));
       if (error) {
-        clearError();
+        clearError(); // Clears global auth errors.
       }
-      setInlineMessage(null);
+      setInlineMessage(null); // Clears local inline messages.
     },
     [error, clearError],
   );
 
-  // Derived flag for button disabled state and validation.
+  // canSubmit: Memoized value indicating if the form can be submitted.
+  // This controls the 'disabled' prop of the submit TouchableOpacity.
   const canSubmit = useMemo(
     () =>
       Boolean(token && form.password && form.confirmPassword) &&
@@ -53,7 +58,7 @@ export default function ResetPasswordScreen() {
     [token, form.password, form.confirmPassword, isSubmitting],
   );
 
-  // Submit handler: validate token + password fields then call resetPassword.
+  // handleSubmit: Called when the 'Update password' TouchableOpacity is pressed.
   const handleSubmit = useCallback(async () => {
     // Ensure token is present in the URL.
     if (!token) {
@@ -87,7 +92,7 @@ export default function ResetPasswordScreen() {
     setIsSubmitting(true);
 
     try {
-      // Send the form-derived password as the payload source.
+      // Calls the resetPassword function from AuthContext to update the password.
       const result = await resetPassword(token, form.password);
       if (!result.success) {
         setInlineMessage({
@@ -104,7 +109,7 @@ export default function ResetPasswordScreen() {
 
       // Delay navigation to let the user read the success message.
       redirectTimer.current = setTimeout(() => {
-        router.replace('/(public)/(auth)/login');
+        router.replace('/(public)/(auth)/login'); // Navigates to the login page.
       }, 1500);
     } catch {
       setInlineMessage({
@@ -112,6 +117,7 @@ export default function ResetPasswordScreen() {
         text: 'Unexpected error. Please try again.',
       });
     } finally {
+      // Always stop the loader.
       setIsSubmitting(false);
     }
   }, [token, form.password, form.confirmPassword, resetPassword, router]);
@@ -119,7 +125,7 @@ export default function ResetPasswordScreen() {
   return (
     <ScrollView className="bg-white" contentContainerClassName="flex-grow">
       <View className="auth-container">
-        {/* Header */}
+        {/* Header section of the authentication page. */}
         <View className="auth-header">
           <Text className="auth-kicker">Appointment Client</Text>
           <Text className="auth-title">Reset password</Text>
@@ -128,21 +134,21 @@ export default function ResetPasswordScreen() {
           </Text>
         </View>
 
-        {/* Form */}
+        {/* Form input fields and actions. */}
         <View className="auth-form w-full">
-          {/* New password field */}
+          {/* New password input field with visibility toggle. */}
           <View className="auth-field">
             <Text className="label">New password</Text>
             <View className="relative">
               <TextInput
                 value={form.password}
-                onChangeText={(value) => handleInputChange('password', value)}
+                onChangeText={(value) => handleInputChange('password', value)} // Calls handleInputChange on text change.
                 autoComplete="new-password"
-                secureTextEntry={!isPasswordVisible}
+                secureTextEntry={!isPasswordVisible} // Toggled by setIsPasswordVisible.
                 placeholder="••••••••"
                 className="input-password"
               />
-              {/* Toggle password visibility */}
+              {/* Toggle password visibility. onPress calls setIsPasswordVisible. */}
               <TouchableOpacity
                 onPress={() => setIsPasswordVisible((previous) => !previous)}
                 className="input-toggle-icon"
@@ -156,19 +162,19 @@ export default function ResetPasswordScreen() {
             </View>
           </View>
 
-          {/* Confirm password field */}
+          {/* Confirm password input field with visibility toggle. */}
           <View className="auth-field">
             <Text className="label">Confirm password</Text>
             <View className="relative">
               <TextInput
                 value={form.confirmPassword}
-                onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                onChangeText={(value) => handleInputChange('confirmPassword', value)} // Calls handleInputChange on text change.
                 autoComplete="new-password"
-                secureTextEntry={!isConfirmPasswordVisible}
+                secureTextEntry={!isConfirmPasswordVisible} // Toggled by setIsConfirmPasswordVisible.
                 placeholder="••••••••"
                 className="input-password"
               />
-              {/* Toggle confirm password visibility */}
+              {/* Toggle confirm password visibility. onPress calls setIsConfirmPasswordVisible. */}
               <TouchableOpacity
                 onPress={() => setIsConfirmPasswordVisible((previous) => !previous)}
                 className="input-toggle-icon"
@@ -182,7 +188,7 @@ export default function ResetPasswordScreen() {
             </View>
           </View>
 
-          {/* Inline feedback */}
+          {/* Inline feedback displays inlineMessage if present. */}
           {inlineMessage ? (
             <Text
               className={
@@ -194,15 +200,16 @@ export default function ResetPasswordScreen() {
             </Text>
           ) : null}
 
-          {/* Submit button */}
+          {/* Submit button. onPress calls handleSubmit. */}
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit} // Disabled state controlled by canSubmit.
             className={`auth-button ${!canSubmit ? 'opacity-50' : ''}`}>
             {isSubmitting ? 'Updating...' : 'Update password'}
           </TouchableOpacity>
         </View>
 
+        {/* Link back to the login page. */}
         <Link href="/(public)/(auth)/login" className="auth-footer-link">
           <Text className="text-center text-sm text-gray-500">
             Need to try again? <Text className="font-semibold text-brand-primary">Back to sign in</Text>

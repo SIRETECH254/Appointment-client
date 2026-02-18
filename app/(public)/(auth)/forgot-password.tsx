@@ -9,32 +9,34 @@ type InlineMessage = {
 };
 
 export default function ForgotPasswordScreen() {
+  // useAuth provides forgotPassword function, global error state, and error clearing.
   const { forgotPassword, error, clearError } = useAuth();
-  // Single form object to send as payload.
+  // State for form input (email), inline messages, and submission status.
   const [form, setForm] = useState({ email: '' });
   const [inlineMessage, setInlineMessage] = useState<InlineMessage | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Shared input handler for all fields.
+  // handleInputChange: Updates form state when TextInput component's value changes.
   const handleInputChange = useCallback(
     (name: keyof typeof form, value: string) => {
       // Update form and clear any errors.
       setForm((previous) => ({ ...previous, [name]: value }));
       if (error) {
-        clearError();
+        clearError(); // Clears global auth errors.
       }
-      setInlineMessage(null);
+      setInlineMessage(null); // Clears local inline messages.
     },
     [error, clearError],
   );
 
-  // Derived flag for button disabled state.
+  // canSubmit: Memoized value indicating if the form can be submitted.
+  // This controls the 'disabled' prop of the submit TouchableOpacity.
   const canSubmit = useMemo(
     () => Boolean(form.email.trim()) && !isSubmitting,
     [form.email, isSubmitting],
   );
 
-  // Submit handler: validate email and call forgotPassword.
+  // handleSubmit: Called when the 'Send reset link' TouchableOpacity is pressed.
   const handleSubmit = useCallback(async () => {
     const trimmedEmail = form.email.trim();
 
@@ -50,7 +52,7 @@ export default function ForgotPasswordScreen() {
     setIsSubmitting(true);
 
     try {
-      // Send the form object as the payload source.
+      // Calls the forgotPassword function from AuthContext to request a reset link.
       const result = await forgotPassword(trimmedEmail);
       if (!result.success) {
         setInlineMessage({
@@ -77,7 +79,7 @@ export default function ForgotPasswordScreen() {
   return (
     <ScrollView className="bg-white" contentContainerClassName="flex-grow">
       <View className="auth-container">
-        {/* Header */}
+        {/* Header section of the authentication page. */}
         <View className="auth-header">
           <Text className="auth-kicker">Appointment Client</Text>
           <Text className="auth-title">Forgot password?</Text>
@@ -86,14 +88,14 @@ export default function ForgotPasswordScreen() {
           </Text>
         </View>
 
-        {/* Form */}
+        {/* Form input field and actions. */}
         <View className="auth-form w-full">
-          {/* Email field */}
+          {/* Email input field. */}
           <View className="auth-field">
             <Text className="label">Email</Text>
             <TextInput
               value={form.email}
-              onChangeText={(value) => handleInputChange('email', value)}
+              onChangeText={(value) => handleInputChange('email', value)} // Calls handleInputChange on text change.
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -102,7 +104,7 @@ export default function ForgotPasswordScreen() {
             />
           </View>
 
-          {/* Inline feedback */}
+          {/* Inline feedback displays inlineMessage if present. */}
           {inlineMessage ? (
             <Text
               className={
@@ -114,15 +116,16 @@ export default function ForgotPasswordScreen() {
             </Text>
           ) : null}
 
-          {/* Submit button */}
+          {/* Submit button. onPress calls handleSubmit. */}
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit} // Disabled state controlled by canSubmit.
             className={`auth-button ${!canSubmit ? 'opacity-50' : ''}`}>
             {isSubmitting ? 'Sending...' : 'Send reset link'}
           </TouchableOpacity>
         </View>
 
+        {/* Link back to the login page. */}
         <Link href="/(public)/(auth)/login" className="auth-footer-link">
           <Text className="text-center text-sm text-gray-500">
             Remembered your password? <Text className="font-semibold text-brand-primary">Back to sign in</Text>

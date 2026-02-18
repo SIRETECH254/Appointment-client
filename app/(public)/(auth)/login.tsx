@@ -7,29 +7,32 @@ import { deleteToken } from '../../../storage/tokenStore';
 
 export default function LoginScreen() {
   const router = useRouter();
+  // useAuth provides login function, loading state, global errors, and error clearing.
   const { login, isLoading, error, clearError } = useAuth();
 
-  // Single form object to send as the login payload.
+  // State to manage form inputs (email, password), remember me option, password visibility, and submission status.
   const [form, setForm] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(true);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // State for displaying inline error messages specific to this form.
   const [inlineError, setInlineError] = useState<string | null>(null);
 
-  // Shared input handler for all fields.
+  // handleInputChange: Updates form state when TextInput components' values change.
   const handleInputChange = useCallback(
     (name: keyof typeof form, value: string) => {
       // Update the form and clear any visible errors.
       setForm((previous) => ({ ...previous, [name]: value }));
       if (error) {
-        clearError();
+        clearError(); // Clears global auth errors.
       }
-      setInlineError(null);
+      setInlineError(null); // Clears local inline errors.
     },
     [error, clearError],
   );
 
-  // Derived flag for button state and validation.
+  // canSubmit: Memoized value indicating if the form can be submitted.
+  // This controls the 'disabled' prop of the submit TouchableOpacity.
   const canSubmit = useMemo(
     () =>
       Boolean(form.email.trim() && form.password) &&
@@ -38,7 +41,7 @@ export default function LoginScreen() {
     [form.email, form.password, isSubmitting, isLoading],
   );
 
-  // Form submission handler (validates + calls login).
+  // handleSubmit: Called when the 'Sign in' TouchableOpacity is pressed.
   const handleSubmit = useCallback(async () => {
     // Trim email before sending to the API.
     const trimmedEmail = form.email.trim();
@@ -52,33 +55,31 @@ export default function LoginScreen() {
     setIsSubmitting(true);
 
     try {
-      // Send the form object as the login payload.
+      // Calls the login function from AuthContext to authenticate the user.
       const result = await login({ email: trimmedEmail, password: form.password });
       if (!result.success) {
         setInlineError(result.error ?? 'Unable to sign in.');
         return;
       }
 
-      // If remember me is unchecked, drop the refresh token.
+      // If remember me is unchecked, drop the refresh token from storage.
       if (!rememberMe) {
         await deleteToken('refreshToken');
       }
 
-      // Redirect to the authenticated landing page.
-      router.replace('/(authenticated)/(tabs)/profile');
+      // Redirect to the authenticated home page using expo-router.
+      router.replace('/(authenticated)/(tabs)/index');
     } finally {
       // Always stop the loader.
       setIsSubmitting(false);
     }
   }, [form, rememberMe, login, router]);
 
-  // Prefer inline error over global auth error for display.
-  const bannerMessage = inlineError || error;
-
+  // bannerMessage: Determines which error message to display (inline or global auth error).
   return (
     <ScrollView className="bg-white" contentContainerClassName="flex-grow">
       <View className="auth-container">
-        {/* Header */}
+        {/* Header section of the authentication page. */}
         <View className="auth-header">
           <Text className="auth-kicker">Appointment Client</Text>
           <Text className="auth-title">Welcome back</Text>
@@ -87,14 +88,14 @@ export default function LoginScreen() {
           </Text>
         </View>
 
-        {/* Form */}
+        {/* Form input fields and actions. */}
         <View className="auth-form w-full">
-          {/* Email field */}
+          {/* Email input field. */}
           <View className="auth-field">
             <Text className="label">Email</Text>
             <TextInput
               value={form.email}
-              onChangeText={(value) => handleInputChange('email', value)}
+              onChangeText={(value) => handleInputChange('email', value)} // Calls handleInputChange on text change.
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -103,19 +104,19 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Password field */}
+          {/* Password input field with visibility toggle. */}
           <View className="auth-field">
             <Text className="label">Password</Text>
             <View className="relative">
               <TextInput
                 value={form.password}
-                onChangeText={(value) => handleInputChange('password', value)}
+                onChangeText={(value) => handleInputChange('password', value)} // Calls handleInputChange on text change.
                 autoComplete="password"
-                secureTextEntry={!isPasswordVisible}
+                secureTextEntry={!isPasswordVisible} // Toggled by setIsPasswordVisible.
                 placeholder="••••••••"
                 className="input-password"
               />
-              {/* Toggle password visibility */}
+              {/* Toggle password visibility. onPress calls setIsPasswordVisible. */}
               <TouchableOpacity
                 onPress={() => setIsPasswordVisible((previous) => !previous)}
                 className="input-toggle-icon"
@@ -129,11 +130,11 @@ export default function LoginScreen() {
             </View>
           </View>
 
-          {/* Remember me + forgot password */}
+          {/* "Remember me" checkbox and "Forgot password?" link. */}
           <View className="auth-actions">
             <TouchableOpacity
               onPress={() => {
-                setRememberMe((previous) => !previous);
+                setRememberMe((previous) => !previous); // Toggles rememberMe state.
                 setInlineError(null);
                 if (error) {
                   clearError();
@@ -145,25 +146,27 @@ export default function LoginScreen() {
               </View>
               <Text className="font-inter text-sm text-slate-600">Remember me</Text>
             </TouchableOpacity>
+            {/* Navigates to forgot password screen using expo-router Link. */}
             <Link href="/(public)/(auth)/forgot-password">
               <Text className="auth-link">Forgot password?</Text>
             </Link>
           </View>
 
-          {/* Error banner */}
+          {/* Error banner displays bannerMessage if present. */}
           {bannerMessage ? (
             <Text className="auth-inline-message-error">{bannerMessage}</Text>
           ) : null}
 
-          {/* Submit button */}
+          {/* Submit button. onPress calls handleSubmit. */}
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit} // Disabled state controlled by canSubmit.
             className={`auth-button ${!canSubmit ? 'opacity-50' : ''}`}
             >
               {isSubmitting || isLoading ? 'Signing in...' : 'Sign in'}
           </TouchableOpacity>
 
+          {/* Link to the registration page. */}
           <Link href="/(public)/(auth)/register" className="auth-footer">
             <Text className="text-center text-sm text-gray-500">
               Don't have an account? <Text className="auth-link">Sign up</Text>

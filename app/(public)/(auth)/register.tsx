@@ -6,9 +6,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 export default function RegisterScreen() {
   const router = useRouter();
+  // useAuth provides register function, loading state, global errors, and error clearing.
   const { register, isLoading, error, clearError } = useAuth();
 
-  // Single form object to send as the register payload.
+  // State to manage form inputs (firstName, lastName, email, phone, password, confirmPassword).
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -17,25 +18,28 @@ export default function RegisterScreen() {
     password: '',
     confirmPassword: '',
   });
+  // States for toggling password visibility for both password fields.
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isConfirmPasswordVisible, setIsConfirmPasswordVisible] = useState(false);
+  // State for managing submission status and local inline errors.
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
 
-  // Shared input handler for all fields.
+  // handleInputChange: Updates form state when TextInput components' values change.
   const handleInputChange = useCallback(
     (name: keyof typeof form, value: string) => {
       // Update the form and clear any visible errors.
       setForm((previous) => ({ ...previous, [name]: value }));
       if (error) {
-        clearError();
+        clearError(); // Clears global auth errors.
       }
-      setInlineError(null);
+      setInlineError(null); // Clears local inline errors.
     },
     [error, clearError],
   );
 
-  // Derived flag for button state and validation.
+  // canSubmit: Memoized value indicating if the form can be submitted.
+  // This controls the 'disabled' prop of the submit TouchableOpacity.
   const canSubmit = useMemo(
     () =>
       Boolean(
@@ -51,7 +55,7 @@ export default function RegisterScreen() {
     [form, isSubmitting, isLoading],
   );
 
-  // Form submission handler (validates + calls register).
+  // handleSubmit: Called when the 'Register' TouchableOpacity is pressed.
   const handleSubmit = useCallback(async () => {
     const trimmedEmail = form.email.trim();
     if (!form.firstName || !form.lastName || !trimmedEmail || !form.password || !form.confirmPassword) {
@@ -69,7 +73,7 @@ export default function RegisterScreen() {
     setIsSubmitting(true);
 
     try {
-      // Send the form object as the register payload.
+      // Calls the register function from AuthContext to register the user.
       const result = await register({
         firstName: form.firstName,
         lastName: form.lastName,
@@ -82,7 +86,7 @@ export default function RegisterScreen() {
         return;
       }
 
-      // Navigate to OTP verification screen.
+      // Navigate to OTP verification screen upon successful registration.
       router.push('/(public)/(auth)/verify-otp');
     } finally {
       // Always stop the loader.
@@ -90,13 +94,11 @@ export default function RegisterScreen() {
     }
   }, [form, register, router]);
 
-  // Prefer inline error over global auth error for display.
-  const bannerMessage = inlineError || error;
-
+  // bannerMessage: Determines which error message to display (inline or global auth error).
   return (
     <ScrollView className="bg-white" contentContainerClassName="flex-grow">
       <View className="auth-container">
-        {/* Header */}
+        {/* Header section of the authentication page. */}
         <View className="auth-header">
           <Text className="auth-kicker">Appointment Client</Text>
           <Text className="auth-title">Create account</Text>
@@ -105,38 +107,38 @@ export default function RegisterScreen() {
           </Text>
         </View>
 
-        {/* Form */}
+        {/* Form input fields and actions. */}
         <View className="auth-form w-full">
-          {/* First Name field */}
+          {/* First Name input field. */}
           <View className="auth-field">
             <Text className="label">First Name</Text>
             <TextInput
               value={form.firstName}
-              onChangeText={(value) => handleInputChange('firstName', value)}
+              onChangeText={(value) => handleInputChange('firstName', value)} // Calls handleInputChange on text change.
               autoCapitalize="words"
               placeholder="Enter your first name"
               className="input"
             />
           </View>
 
-          {/* Last Name field */}
+          {/* Last Name input field. */}
           <View className="auth-field">
             <Text className="label">Last Name</Text>
             <TextInput
               value={form.lastName}
-              onChangeText={(value) => handleInputChange('lastName', value)}
+              onChangeText={(value) => handleInputChange('lastName', value)} // Calls handleInputChange on text change.
               autoCapitalize="words"
               placeholder="Enter your last name"
               className="input"
             />
           </View>
 
-          {/* Email field */}
+          {/* Email input field. */}
           <View className="auth-field">
             <Text className="label">Email</Text>
             <TextInput
               value={form.email}
-              onChangeText={(value) => handleInputChange('email', value)}
+              onChangeText={(value) => handleInputChange('email', value)} // Calls handleInputChange on text change.
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -145,12 +147,12 @@ export default function RegisterScreen() {
             />
           </View>
 
-          {/* Phone field (optional) */}
+          {/* Phone input field (optional). */}
           <View className="auth-field">
             <Text className="label">Phone (Optional)</Text>
             <TextInput
               value={form.phone}
-              onChangeText={(value) => handleInputChange('phone', value)}
+              onChangeText={(value) => handleInputChange('phone', value)} // Calls handleInputChange on text change.
               keyboardType="phone-pad"
               autoComplete="tel"
               placeholder="Enter your phone number"
@@ -158,18 +160,19 @@ export default function RegisterScreen() {
             />
           </View>
 
-          {/* Password field */}
+          {/* Password input field with visibility toggle. */}
           <View className="auth-field">
             <Text className="label">Password</Text>
             <View className="relative">
               <TextInput
                 value={form.password}
-                onChangeText={(value) => handleInputChange('password', value)}
+                onChangeText={(value) => handleInputChange('password', value)} // Calls handleInputChange on text change.
                 autoComplete="password-new"
-                secureTextEntry={!isPasswordVisible}
+                secureTextEntry={!isPasswordVisible} // Toggled by setIsPasswordVisible.
                 placeholder="••••••••"
                 className="input-password"
               />
+              {/* Toggle password visibility. onPress calls setIsPasswordVisible. */}
               <TouchableOpacity
                 onPress={() => setIsPasswordVisible((previous) => !previous)}
                 className="input-toggle-icon"
@@ -183,18 +186,19 @@ export default function RegisterScreen() {
             </View>
           </View>
 
-          {/* Confirm Password field */}
+          {/* Confirm Password input field with visibility toggle. */}
           <View className="auth-field">
             <Text className="label">Confirm Password</Text>
             <View className="relative">
               <TextInput
                 value={form.confirmPassword}
-                onChangeText={(value) => handleInputChange('confirmPassword', value)}
+                onChangeText={(value) => handleInputChange('confirmPassword', value)} // Calls handleInputChange on text change.
                 autoComplete="password-new"
-                secureTextEntry={!isConfirmPasswordVisible}
+                secureTextEntry={!isConfirmPasswordVisible} // Toggled by setIsConfirmPasswordVisible.
                 placeholder="Confirm your password"
                 className="input-password"
               />
+              {/* Toggle confirm password visibility. onPress calls setIsConfirmPasswordVisible. */}
               <TouchableOpacity
                 onPress={() => setIsConfirmPasswordVisible((previous) => !previous)}
                 className="input-toggle-icon"
@@ -208,20 +212,21 @@ export default function RegisterScreen() {
             </View>
           </View>
 
-          {/* Error banner */}
+          {/* Error banner displays bannerMessage if present. */}
           {bannerMessage ? (
             <Text className="auth-inline-message-error">{bannerMessage}</Text>
           ) : null}
 
-          {/* Submit button */}
+          {/* Submit button. onPress calls handleSubmit. */}
           <TouchableOpacity
             onPress={handleSubmit}
-            disabled={!canSubmit}
+            disabled={!canSubmit} // Disabled state controlled by canSubmit.
             className={`auth-button ${!canSubmit ? 'opacity-50' : ''}`}>
             {isSubmitting ? 'Registering...' : 'Register'}
           </TouchableOpacity>
         </View>
 
+        {/* Link to the login page. */}
         <Link href="/(public)/(auth)/login" className="auth-footer-link">
           <Text className="text-center text-sm text-gray-500">
             Already have an account? <Text className="font-semibold text-brand-primary">Sign in</Text>

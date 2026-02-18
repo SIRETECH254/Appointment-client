@@ -5,9 +5,10 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 export default function VerifyOTPScreen() {
   const router = useRouter();
+  // useAuth provides verifyOTP, resendOTP functions, loading state, global errors, and error clearing.
   const { verifyOTP, resendOTP, isLoading, error, clearError } = useAuth();
 
-  // Single form object to send as the verify OTP payload.
+  // State for form inputs (email, otp), submission status, resending status, and countdown.
   const [form, setForm] = useState({ email: '', otp: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResending, setIsResending] = useState(false);
@@ -15,7 +16,7 @@ export default function VerifyOTPScreen() {
   const [resendCountdown, setResendCountdown] = useState(0);
   const [canResend, setCanResend] = useState(true);
 
-  // Form submission handler (validates + calls verifyOTP).
+  // handleSubmit: Called when the 'Verify' TouchableOpacity is pressed, or auto-triggered for OTP.
   const handleSubmit = useCallback(async (otpValue?: string) => {
     const trimmedEmail = form.email.trim();
     const otpToVerify = otpValue || form.otp;
@@ -30,14 +31,15 @@ export default function VerifyOTPScreen() {
     setIsSubmitting(true);
 
     try {
-      // Send the form object as the verify OTP payload.
+      // Calls the verifyOTP function from AuthContext to verify the OTP.
       const result = await verifyOTP({ email: trimmedEmail, otp: otpToVerify });
       if (!result.success) {
         setInlineError(result.error ?? 'Unable to verify OTP.');
         return;
       }
 
-      // Redirect to the authenticated landing page.
+      // Redirect to the authenticated profile page upon successful OTP verification.
+      // NOTE: This navigation target might need to be adjusted based on app flow (e.g., to home page).
       router.replace('/(authenticated)/(tabs)/profile');
     } finally {
       // Always stop the loader.
@@ -45,7 +47,8 @@ export default function VerifyOTPScreen() {
     }
   }, [form.email, form.otp, verifyOTP, router]);
 
-  // Shared input handler for all fields.
+  // handleInputChange: Updates form state when TextInput components' values change.
+  // Includes special logic for OTP input to auto-submit.
   const handleInputChange = useCallback(
     (name: keyof typeof form, value: string) => {
       // Update the form and clear any visible errors.
@@ -55,20 +58,21 @@ export default function VerifyOTPScreen() {
         setForm((previous) => ({ ...previous, [name]: digitsOnly }));
         // Auto-submit when 6 digits entered
         if (digitsOnly.length === 6) {
-          setTimeout(() => handleSubmit(digitsOnly), 100);
+          setTimeout(() => handleSubmit(digitsOnly), 100); // Auto-triggers handleSubmit.
         }
       } else {
         setForm((previous) => ({ ...previous, [name]: value }));
       }
       if (error) {
-        clearError();
+        clearError(); // Clears global auth errors.
       }
-      setInlineError(null);
+      setInlineError(null); // Clears local inline errors.
     },
     [error, clearError, handleSubmit],
   );
 
-  // Derived flag for button state and validation.
+  // canSubmit: Memoized value indicating if the form can be submitted.
+  // This controls the 'disabled' prop of the submit TouchableOpacity.
   const canSubmit = useMemo(
     () =>
       Boolean(form.email.trim() && form.otp.length === 6) &&
@@ -77,7 +81,7 @@ export default function VerifyOTPScreen() {
     [form.email, form.otp, isSubmitting, isLoading],
   );
 
-  // Resend OTP handler.
+  // handleResend: Called when the 'Resend OTP' TouchableOpacity is pressed.
   const handleResend = useCallback(async () => {
     const trimmedEmail = form.email.trim();
     if (!trimmedEmail) {
@@ -89,6 +93,7 @@ export default function VerifyOTPScreen() {
     setIsResending(true);
 
     try {
+      // Calls the resendOTP function from AuthContext.
       const result = await resendOTP({ email: trimmedEmail });
       if (!result.success) {
         setInlineError(result.error ?? 'Unable to resend OTP.');
@@ -96,14 +101,14 @@ export default function VerifyOTPScreen() {
       }
 
       // Start countdown
-      setResendCountdown(60);
-      setCanResend(false);
+      setResendCountdown(60); // Sets the countdown duration.
+      setCanResend(false); // Disables the resend button.
     } finally {
       setIsResending(false);
     }
   }, [form.email, resendOTP]);
 
-  // Countdown effect for resend button.
+  // useEffect: Manages the resend countdown timer.
   useEffect(() => {
     if (resendCountdown > 0) {
       const timer = setTimeout(() => {
@@ -111,17 +116,15 @@ export default function VerifyOTPScreen() {
       }, 1000);
       return () => clearTimeout(timer);
     } else {
-      setCanResend(true);
+      setCanResend(true); // Re-enables the resend button when countdown finishes.
     }
   }, [resendCountdown]);
 
-  // Prefer inline error over global auth error for display.
-  const bannerMessage = inlineError || error;
-
+  // bannerMessage: Determines which error message to display (inline or global auth error).
   return (
     <ScrollView className="bg-white" contentContainerClassName="flex-grow">
       <View className="auth-container">
-        {/* Header */}
+        {/* Header section of the authentication page. */}
         <View className="auth-header">
           <Text className="auth-kicker">Appointment Client</Text>
           <Text className="auth-title">Verify OTP</Text>
@@ -130,14 +133,14 @@ export default function VerifyOTPScreen() {
           </Text>
         </View>
 
-        {/* Form */}
+        {/* Form input fields and actions. */}
         <View className="auth-form w-full">
-          {/* Email field */}
+          {/* Email input field. */}
           <View className="auth-field">
             <Text className="label">Email</Text>
             <TextInput
               value={form.email}
-              onChangeText={(value) => handleInputChange('email', value)}
+              onChangeText={(value) => handleInputChange('email', value)} // Calls handleInputChange on text change.
               autoCapitalize="none"
               autoComplete="email"
               keyboardType="email-address"
@@ -146,12 +149,12 @@ export default function VerifyOTPScreen() {
             />
           </View>
 
-          {/* OTP field */}
+          {/* OTP input field. */}
           <View className="auth-field">
             <Text className="label">OTP Code</Text>
             <TextInput
               value={form.otp}
-              onChangeText={(value) => handleInputChange('otp', value)}
+              onChangeText={(value) => handleInputChange('otp', value)} // Calls handleInputChange on text change, triggering auto-submit.
               keyboardType="number-pad"
               maxLength={6}
               placeholder="000000"
@@ -159,30 +162,31 @@ export default function VerifyOTPScreen() {
             />
           </View>
 
-          {/* Resend OTP button */}
+          {/* Resend OTP button. onPress calls handleResend. */}
           <TouchableOpacity
             onPress={handleResend}
-            disabled={!canResend}
+            disabled={!canResend} // Disabled state controlled by canResend.
             className={`${!canResend ? 'opacity-50' : ''}`}>
             <Text className="auth-link">
               {canResend ? 'Resend OTP' : `Resend OTP (${resendCountdown}s)`}
             </Text>
           </TouchableOpacity>
 
-          {/* Error banner */}
+          {/* Error banner displays bannerMessage if present. */}
           {bannerMessage ? (
             <Text className="auth-inline-message-error">{bannerMessage}</Text>
           ) : null}
 
-          {/* Submit button */}
+          {/* Submit button. onPress calls handleSubmit. */}
           <TouchableOpacity
             onPress={() => handleSubmit()}
-            disabled={!canSubmit}
+            disabled={!canSubmit} // Disabled state controlled by canSubmit.
             className={`auth-button ${!canSubmit ? 'opacity-50' : ''}`}>
             {isSubmitting || isLoading ? 'Verifying...' : 'Verify'}
           </TouchableOpacity>
         </View>
 
+        {/* Link back to the login page. */}
         <Link href="/(public)/(auth)/login" className="auth-footer-link">
           <Text className="text-center text-sm text-gray-500">
             Back to <Text className="font-semibold text-brand-primary">sign in</Text>
