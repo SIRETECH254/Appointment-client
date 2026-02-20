@@ -61,6 +61,11 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
     router.push('/(authenticated)/notifications');
   };
 
+  const handleAppointments = () => {
+    setIsMenuOpen(false);
+    router.push('/(authenticated)/appointment');
+  };
+
   return (
     <View className="sticky top-0 z-40 border-b border-gray-200 bg-white">
       <View className="flex-row items-center justify-between px-4 py-3 lg:px-6">
@@ -104,6 +109,15 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
                 Services
               </Text>
             </TouchableOpacity>
+            {isAuthenticated && (
+              <TouchableOpacity
+                onPress={handleAppointments}
+                className={`px-3 py-2 ${pathname.startsWith('/(authenticated)/appointment') ? 'border-b-2 border-brand-primary' : ''}`}>
+                <Text className={`font-inter text-sm font-medium ${pathname.startsWith('/(authenticated)/appointment') ? 'text-brand-primary' : 'text-slate-600'}`}>
+                  Appointments
+                </Text>
+              </TouchableOpacity>
+            )}
             <TouchableOpacity
               onPress={() => router.push('/(public)/contact')}
               className={`px-3 py-2 ${pathname === '/(public)/contact' ? 'border-b-2 border-brand-primary' : ''}`}>
@@ -164,6 +178,12 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
                         className="flex-row items-center gap-2 rounded-lg px-3 py-2">
                         <MaterialIcons name="person" size={18} color="#374151" />
                         <Text className="font-inter text-sm text-gray-700">View Profile</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={handleAppointments}
+                        className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
+                        <MaterialIcons name="calendar-today" size={18} color="#374151" />
+                        <Text className="font-inter text-sm text-gray-700">My Appointments</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={handleLogout}

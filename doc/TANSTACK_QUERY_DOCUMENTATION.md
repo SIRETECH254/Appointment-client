@@ -669,40 +669,6 @@ function ServiceSelector({ staffId }: { staffId: string }) {
 
 ---
 
-## User Hooks
-
-### useGetStaffByService
-
-Fetches staff members who provide a specific service (for service-first appointment flow).
-
-```typescript
-import { useGetStaffByService } from '../tanstack/useUsers';
-import { View, Text } from 'react-native';
-
-function StaffSelector({ serviceId }: { serviceId: string }) {
-  const { data, isLoading } = useGetStaffByService(serviceId);
-  const staff = data?.users || [];
-  
-  return (
-    <View>
-      {staff.map(member => (
-        <Text key={member._id}>{member.firstName} {member.lastName}</Text>
-      ))}
-    </View>
-  );
-}
-```
-
-**Parameters:**
-- `serviceId: string` - The service ID
-
-**Returns:**
-- `{ users: IUser[] }` - Array of staff members who provide the service
-
-**Note:** This hook is automatically disabled if `serviceId` is empty. Only works with single service selection.
-
----
-
 ## Availability Hooks
 
 ### useGetSlots

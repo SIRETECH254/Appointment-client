@@ -18,7 +18,7 @@ export const useGetMyAppointments = (params: GetMyAppointmentsParams = {}) => {
     queryKey: ['appointments', 'my', params],
     queryFn: async () => {
       const response = await appointmentAPI.getMyAppointments(params);
-      return response.data.data;
+      return response.data.data.appointments;
     },
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
@@ -31,7 +31,7 @@ export const useGetAppointment = (appointmentId: string) => {
     queryKey: ['appointment', appointmentId],
     queryFn: async () => {
       const response = await appointmentAPI.getAppointment(appointmentId);
-      return response.data.data;
+      return response.data.data.appointment;
     },
     enabled: !!appointmentId,
     staleTime: DEFAULT_STALE_TIME,

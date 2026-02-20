@@ -36,6 +36,10 @@ export default function AuthenticatedLayout() {
             headerShown: false,
           }}>
           <Stack.Screen name="appointment/index" options={{ headerShown: false }} />
+          <Stack.Screen name="appointment/create" options={{ headerShown: false }} />
+          <Stack.Screen name="appointment/reschedule" options={{ headerShown: false }} />
+          <Stack.Screen name="appointment/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="appointment/[id]/payment" options={{ headerShown: false }} />
           <Stack.Screen name="profile/index" options={{ headerShown: false }} />
           <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
           <Stack.Screen name="profile/change-password" options={{ headerShown: false }} />

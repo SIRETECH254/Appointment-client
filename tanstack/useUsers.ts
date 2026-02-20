@@ -104,43 +104,14 @@ export const useUpdateNotificationPreferences = () => {
   });
 };
 
-// Get customers (users with customer role)
-export const useGetCustomers = (params: GetCustomersParams = {}) => {
+// Get all staff members
+export const useGetAllStaff = (params?: any) => {
   return useQuery({
-    queryKey: ['users', 'customers', params],
+    queryKey: ['users', 'staff', params],
     queryFn: async () => {
-      const response = await userAPI.getCustomers(params);
-      return response.data.data;
+      const response = await userAPI.getStaff(params);
+      return response.data.data.staff;
     },
-    staleTime: DEFAULT_STALE_TIME,
-    gcTime: DEFAULT_GC_TIME,
-  });
-};
-
-// Get staff members who provide a specific service (for booking flow)
-export const useGetStaffByService = (serviceId: string) => {
-  return useQuery({
-    queryKey: ['users', 'staff', 'service', serviceId],
-    queryFn: async () => {
-      // Get all staff users
-      // Assuming userAPI.getAllUsers can filter by role and status for client view
-      const response = await userAPI.getAllUsers({ role: 'staff', status: 'active' });
-      const allStaff = response.data.data.users || [];
-      
-      // Filter staff where their services array includes the serviceId
-      const staffWithService = allStaff.filter((staff: any) => {
-        if (!staff.services || staff.services.length === 0) return false;
-        
-        // Handle both populated services and service IDs
-        return staff.services.some((s: any) => {
-          const id = typeof s === 'string' ? s : s._id || s;
-          return id === serviceId;
-        });
-      });
-
-      return { users: staffWithService };
-    },
-    enabled: !!serviceId,
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
   });

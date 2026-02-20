@@ -16,17 +16,19 @@
 
 ## Imports
 ```tsx
-import { useCallback, useMemo } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useGetAppointment, useConfirmAppointment, useRescheduleAppointment, useCancelAppointment, useCheckInAppointment, useCompleteAppointment, useMarkNoShowAppointment } from '@/tanstack/useAppointments';
-import ConfirmModal from '@/components/ui/ConfirmModal';
+import { Modal } from '@/components/ui/Modal';
 import { formatAppointmentDateTime, formatAppointmentStatus, getAppointmentStatusVariant, canRescheduleAppointment, canCancelAppointment, canCheckInAppointment } from '@/utils/appointmentUtils';
 import { formatCurrency } from '@/utils/paymentUtils';
 import type { IAppointment } from '@/types/api.types';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ```
 
 ## Context and State Management
-- **Route Params:** `useParams()` extracts `id` from URL (route: `/appointments/:id`).
+- **Route Params:** `useLocalSearchParams()` extracts `id` from URL (route: `/appointment/[id]`).
 - **TanStack Query:** `useGetAppointment(id)` fetches appointment data.
 - **Mutations:**
   - `useConfirmAppointment()` - Confirm appointment with payment
@@ -36,21 +38,23 @@ import type { IAppointment } from '@/types/api.types';
   - `useCompleteAppointment()` - Mark appointment as completed
   - `useMarkNoShowAppointment()` - Mark appointment as no-show
 - **Local State:**
-  - `confirmModalOpen` - Confirmation modal visibility for destructive actions
+  - `isConfirmModalVisible` - Modal visibility for destructive actions
   - `actionToConfirm` - The action to be confirmed (cancel, no-show, etc.)
   - `inlineMessage` - Success/error feedback message
 
 ## UI Structure
+- **Safe Area & ScrollView:** Main container for mobile layout.
 - **Header Card:** Appointment ID, status badge, customer and staff information.
 - **Details Card:** Appointment information (date/time, services, amounts, notes).
 - **Payment Information Card:** Booking fee, remaining amount, payment status.
-- **Action Buttons:** Contextual buttons based on appointment status.
-- **Confirmation Modals:** Modals for destructive actions (cancel, no-show).
+- **Action Footer:** Contextual buttons based on appointment status.
+- **Modals:** React Native Modals for destructive actions (cancel, no-show).
 
 ## Planned Layout
 ```
 ┌────────────────────────────────────────────┐
-│ Appointment Details                        │
+│ < Back        Appointment Details          │
+├────────────────────────────────────────────┤
 │ Status: [Pending]                          │
 │ Customer: John Doe                        │
 │ Staff: Jane Smith                          │
@@ -67,7 +71,7 @@ import type { IAppointment } from '@/types/api.types';
 ## Sketch Wireframe
 ```
 ┌────────────────────────────────────────────────────────────┐
-│ Appointment #APT-2025-0001                                │
+│ [←] Appointment #APT-2025-0001                            │
 │ Status: [Pending]                                          │
 │                                                            │
 │ Customer: John Doe (john@example.com)                    │
@@ -80,22 +84,24 @@ import type { IAppointment } from '@/types/api.types';
 │ • Booking Fee: KES 200 (Paid)                             │
 │ • Remaining Amount: KES 800 (Unpaid)                      │
 │                                                            │
-│ [Confirm Appointment] [Reschedule] [Cancel]               │
+│ ┌────────────────────────────────────────────────────────┐ │
+│ │ [Confirm Appointment] [Reschedule] [Cancel]          │ │
+│ └────────────────────────────────────────────────────────┘ │
 └────────────────────────────────────────────────────────────┘
 ```
 
 ## Action Buttons
 
 ### PENDING Status
-- **Confirm Appointment** - Navigate to `/appointments/:id/confirm` (payment method selection)
-- **Reschedule** - Navigate to `/appointments/:id/reschedule`
-- **Cancel** - Open confirmation modal, then cancel appointment
+- **Confirm Appointment** - Navigate to `/appointment/[id]/payment` (booking fee)
+- **Reschedule** - Navigate to `/appointment/reschedule?id=[id]`
+- **Cancel** - Open Alert.alert or Modal, then cancel appointment
 
 ### CONFIRMED Status
 - **Check In** - Mark customer as checked in (staff/admin only)
-- **Reschedule** - Navigate to `/appointments/:id/reschedule`
-- **Cancel** - Open confirmation modal, then cancel appointment (only if 2+ hours before start)
-- **Finish Payment** - Navigate to `/appointments/:id/finish-payment` (if remainingAmount > 0)
+- **Reschedule** - Navigate to `/appointment/reschedule?id=[id]`
+- **Cancel** - Open Alert.alert, then cancel appointment (only if 2+ hours before start)
+- **Finish Payment** - Navigate to `/appointment/[id]/payment` (remaining amount)
 
 ### Checked In (CONFIRMED with checkedInAt)
 - **Complete** - Mark appointment as completed (staff only)
@@ -115,87 +121,50 @@ import type { IAppointment } from '@/types/api.types';
 - **Check In Endpoint:** `PATCH /api/appointments/:id/check-in` via `useCheckInAppointment()` mutation.
 - **Complete Endpoint:** `PATCH /api/appointments/:id/complete` via `useCompleteAppointment()` mutation.
 - **No-Show Endpoint:** `PATCH /api/appointments/:id/no-show` via `useMarkNoShowAppointment()` mutation.
-- **Response:** Appointment object with populated customer, staff, and services.
 
 ## Components Used
-- React Router DOM: `Link`, `useNavigate`, `useParams` for routing.
+- Expo Router: `useLocalSearchParams`, `useRouter`, `Stack`.
 - TanStack Query: `useGetAppointment`, mutation hooks for appointment actions.
-- Custom Components: `ConfirmModal` for destructive action confirmations.
-- Utility Functions: `formatAppointmentDateTime`, `formatAppointmentStatus`, `getAppointmentStatusVariant`, `canRescheduleAppointment`, `canCancelAppointment`, `canCheckInAppointment` from `@/utils/appointmentUtils`, `formatCurrency` from `@/utils/paymentUtils`.
-- Tailwind CSS classes: `btn-primary`, `btn-secondary`, `btn-ghost`, `badge`, `badge-success`, `badge-error`, `badge-soft`, `alert-success`, `alert-error`.
+- UI Components: `Button`, `Card`, `Badge`, `Modal`, `Loading` (activity indicator).
+- Icons: `@expo/vector-icons/MaterialIcons`.
+- Utility Functions: `formatAppointmentDateTime`, `formatAppointmentStatus`, `getAppointmentStatusVariant`, `canRescheduleAppointment`, `canCancelAppointment`, `canCheckInAppointment` from `@/utils/appointmentUtils`.
 
 ## Error Handling
-- **Loading State:** Show loading indicator while fetching appointment data.
-- **Error State:** Display `alert-error` with API error message if fetch or mutation fails.
+- **Loading State:** Show `ActivityIndicator` while fetching appointment data.
+- **Error State:** Display error message with a "Retry" button if fetch fails.
 - **Validation:** Client-side validation for action availability (check status, time constraints).
-- **Mutation Error:** Show inline error message if action fails, keep appointment data.
-- **Success State:** Show `alert-success` message, then refresh appointment data.
+- **Alerts:** Use `Alert.alert` for error feedback or action confirmations.
 
 ## Navigation Flow
-- Route: `/appointments/:id`.
-- **Confirm Button:** Navigate to `/appointments/:id/confirm` (ConfirmAppointment page).
-- **Reschedule Button:** Navigate to `/appointments/:id/reschedule` (RescheduleAppointment page).
-- **Finish Payment Button:** Navigate to `/appointments/:id/finish-payment` (FinishPayment page).
-- **Back Button:** Navigate to `/appointments` (AppointmentList page).
+- Route: `/appointment/[id]`.
+- **Confirm Button:** Navigate to `/appointment/[id]/payment` (payment screen).
+- **Reschedule Button:** Navigate to `/appointment/select-slot` (re-using booking flow with `appointmentId`).
+- **Back Button:** Use `router.back()`.
 
 ## Functions Involved
-- **`formatAppointmentDateTime`** — Formats appointment date and time for display.
+- **`formatAppointmentDateTime`** — Formats appointment date and time for mobile display.
+- **`canRescheduleAppointment`** — Checks if appointment can be rescheduled.
+- **`handleCancel`** — Uses `Alert.alert` for confirmation.
   ```tsx
-  import { formatAppointmentDateTime } from '@/utils/appointmentUtils';
-  // Usage: formatAppointmentDateTime(appointment.startTime)
-  ```
-
-- **`canRescheduleAppointment`** — Checks if appointment can be rescheduled (must be CONFIRMED).
-  ```tsx
-  import { canRescheduleAppointment } from '@/utils/appointmentUtils';
-  // Usage: canRescheduleAppointment(appointment)
-  ```
-
-- **`canCancelAppointment`** — Checks if appointment can be cancelled (must be CONFIRMED and 2+ hours before start).
-  ```tsx
-  import { canCancelAppointment } from '@/utils/appointmentUtils';
-  // Usage: canCancelAppointment(appointment)
-  ```
-
-- **`canCheckInAppointment`** — Checks if appointment can be checked in (must be CONFIRMED and on same day).
-  ```tsx
-  import { canCheckInAppointment } from '@/utils/appointmentUtils';
-  // Usage: canCheckInAppointment(appointment)
-  ```
-
-- **`handleCancel`** — Opens cancel confirmation modal.
-  ```tsx
-  const handleCancel = useCallback(() => {
-    setActionToConfirm('cancel');
-    setConfirmModalOpen(true);
-  }, []);
-  ```
-
-- **`handleCancelConfirm`** — Confirms and executes cancellation.
-  ```tsx
-  const handleCancelConfirm = useCallback(async () => {
-    try {
-      await cancelAppointment.mutateAsync({ appointmentId: id, data: {} });
-      setConfirmModalOpen(false);
-      setInlineMessage({ type: 'success', text: 'Appointment cancelled successfully.' });
-    } catch (error) {
-      const errorMessage = error?.response?.data?.message || 'Failed to cancel appointment.';
-      setInlineMessage({ type: 'error', text: errorMessage });
-    }
-  }, [id, cancelAppointment]);
+  const handleCancel = () => {
+    Alert.alert(
+      "Cancel Appointment",
+      "Are you sure you want to cancel this appointment?",
+      [
+        { text: "No", style: "cancel" },
+        { text: "Yes, Cancel", onPress: executeCancel, style: 'destructive' }
+      ]
+    );
+  };
   ```
 
 ## Implementation Details
-- **Status-Based Actions:** Action buttons are conditionally rendered based on appointment status and business rules.
-- **Confirmation Modals:** Destructive actions (cancel, no-show) require confirmation via `ConfirmModal`.
-- **Real-time Updates:** After mutations, appointment data is refreshed via TanStack Query cache invalidation.
-- **Payment Information:** Display booking fee and remaining amount with payment status indicators.
-- **Service List:** Display all services with durations and prices.
+- **Native Components:** Using `View`, `Text`, and `ScrollView` for layout.
+- **StyleSheet/NativeWind:** Styling using NativeWind classes for consistency with the project.
+- **Safe Area Insets:** Using `SafeAreaView` to avoid notches and home indicators.
 
 ## Future Enhancements
-- Appointment history timeline.
-- Customer communication log.
-- Payment history for the appointment.
-- Reschedule history.
-- Notes and internal comments.
-- Email/SMS notification triggers.
+- In-app chat with staff/customer.
+- Push notification settings for this specific appointment.
+- Calendar integration (Add to device calendar).
+- Directions to the shop (Map integration).

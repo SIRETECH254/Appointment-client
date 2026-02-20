@@ -68,7 +68,7 @@ export default function LoginScreen() {
       }
 
       // Redirect to the authenticated home page using expo-router.
-      router.replace('/(authenticated)/(tabs)/index');
+      router.replace('/(public)/');
     } finally {
       // Always stop the loader.
       setIsSubmitting(false);
@@ -171,7 +171,7 @@ export default function LoginScreen() {
           {/* Link to the registration page. */}
           <Link href="/(public)/(auth)/register" className="auth-footer">
             <Text className="text-center text-sm text-gray-500">
-              Don't have an account? <Text className="auth-link">Sign up</Text>
+              Don&apos;t have an account? <Text className="auth-link">Sign up</Text>
             </Text>
           </Link>
         </View>

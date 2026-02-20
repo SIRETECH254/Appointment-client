@@ -82,6 +82,8 @@ export const userAPI = {
   getNotificationPreferences: () => api.get('/api/users/notifications'),
 
   updateNotificationPreferences: (preferences: UpdateNotificationPreferencesPayload) => api.put('/api/users/notifications', preferences),
+
+  getStaff: (params?: any) => api.get('/api/users/staff', { params }),
 };
 
 

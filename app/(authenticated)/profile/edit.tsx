@@ -14,7 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
-import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import { useUpdateProfile, useGetProfile } from '@/tanstack/useUsers';
 
 type InlineMessage = {

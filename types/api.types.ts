@@ -102,17 +102,20 @@ export interface Service {
   updatedAt: string;
 }
 
+export type IService = Service;
+
 // Appointment Types
 export interface CreateAppointmentPayload {
   staffId: string;
   services: string[]; // Array of service IDs
   startTime: string; // ISO8601 datetime
+  endTime: string;   // ISO8601 datetime
   notes?: string;
 }
 
 export interface ConfirmAppointmentPayload {
-  paymentMethod: 'mpesa' | 'paystack';
-  phoneNumber: string;
+  method: 'MPESA' | 'PAYSTACK';
+  phone: string;
 }
 
 export interface RescheduleAppointmentPayload {
@@ -132,17 +135,19 @@ export interface GetMyAppointmentsParams extends PaginationParams {
 export interface Appointment {
   _id: string;
   customerId: string;
-  staffId: string;
+  staffId: string | User; // Can be ID or populated User object
   services: Service[]; // Populated services
   startTime: string; // ISO8601 datetime
   endTime: string; // ISO8601 datetime
-  status: 'pending' | 'confirmed' | 'checked_in' | 'completed' | 'cancelled' | 'no_show';
+  status: 'PENDING' | 'CONFIRMED' | 'CHECKED_IN' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
   bookingFeeAmount: number;
   remainingAmount: number;
   notes?: string;
   createdAt: string;
   updatedAt: string;
 }
+
+export type IAppointment = Appointment;
 
 // Availability Types
 export interface GetSlotsParams {
@@ -151,11 +156,18 @@ export interface GetSlotsParams {
   date: string; // YYYY-MM-DD
 }
 
+export interface GetSlotsResponse {
+  message?: string;
+  slots: AvailabilitySlot[];
+}
+
 export interface AvailabilitySlot {
   startTime: string; // HH:mm
   endTime: string;   // HH:mm
   available: boolean;
 }
+
+export type ITimeSlot = AvailabilitySlot;
 
 export interface GetDayAvailabilityParams {
   staffId?: string;
@@ -172,14 +184,14 @@ export interface DayAvailability {
 // Payment Types
 export interface InitiatePaymentPayload {
   appointmentId: string;
-  paymentMethod: 'mpesa' | 'paystack';
-  phoneNumber: string;
+  method: 'MPESA' | 'PAYSTACK';
+  phone: string;
 }
 
 export interface ServicePaymentPayload {
   appointmentId: string;
-  paymentMethod: 'mpesa' | 'paystack';
-  phoneNumber: string;
+  method: 'MPESA' | 'PAYSTACK';
+  phone: string;
   amount: number;
 }
 
@@ -225,6 +237,8 @@ export interface Notification {
   sentAt: string;
   __v?: number;
 }
+
+export type INotification = Notification;
 
 // Contact Types
 export interface SubmitContactPayload {

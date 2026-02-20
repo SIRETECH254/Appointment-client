@@ -227,7 +227,7 @@ const NotificationListScreen = () => {
                 No notifications found
               </Text>
               <Text className="mt-1 text-sm text-gray-400">
-                You're all caught up!
+                You&apos;re all caught up!
               </Text>
             </View>
           )}

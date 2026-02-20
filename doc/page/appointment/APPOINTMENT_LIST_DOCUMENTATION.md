@@ -16,156 +16,105 @@
 
 ## Imports
 ```tsx
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { MdVisibility, MdAdd } from 'react-icons/md';
-import { useGetAllAppointments } from '@/tanstack/useAppointments';
-import Pagination from '@/components/ui/Pagination';
+import { useCallback, useMemo, useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
+import { useGetMyAppointments } from '@/tanstack/useAppointments';
 import { formatAppointmentDateTime, formatAppointmentStatus, getAppointmentStatusVariant } from '@/utils/appointmentUtils';
 import { formatCurrency } from '@/utils/paymentUtils';
 import type { IAppointment } from '@/types/api.types';
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ```
 
 ## Context and State Management
-- **TanStack Query:** `useGetAllAppointments(params)` fetches paginated appointment list with filters and search.
+- **TanStack Query:** `useGetMyAppointments(params)` fetches the user's appointments.
 - **Local State:**
-  - `searchTerm` - Current search input value
-  - `debouncedSearch` - Debounced search value (500ms delay)
-  - `filterStatus` - Selected status filter (all/pending/confirmed/completed/cancelled/no_show)
-  - `filterStaffId` - Selected staff member filter (all or specific staff ID)
-  - `startDate` - Start date filter (optional)
-  - `endDate` - End date filter (optional)
-  - `currentPage` - Current page number (default: 1)
-  - `itemsPerPage` - Items per page (default: 10)
-- **Derived State:** `params` memo combines filters, search, and pagination for API call.
+  - `searchTerm` - Current search input value.
+  - `filterStatus` - Selected status (PENDING, CONFIRMED, etc.).
+  - `isRefreshing` - Boolean for pull-to-refresh state.
+- **Derived State:** `params` memo for filtering and pagination.
 
 ## UI Structure
-- **Toolbar:** Search input, status filter dropdown, staff filter dropdown, date range pickers, items per page selector, "Add Appointment" button.
-- **Table:** HTML `<table>` element with `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>` tags. Header row with columns (Customer, Staff, Services, Date/Time, Status, Amount, Actions), data rows, loading skeleton rows, error/empty states. Horizontal scroll enabled when content overflows.
-- **Pagination:** Component at bottom showing current page, total pages, and navigation controls.
+- **Search & Filter Bar:** Sticky header with search input and horizontal status chips.
+- **FlatList:** optimized list for mobile rendering.
+- **Appointment Card:** Individual items showing staff, services, date, and status.
+- **Empty State:** Visual feedback when no appointments exist.
 
 ## Planned Layout
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│ [Search] [Status] [Staff] [Start Date] [End Date] [Items/Page] [+Add]│
-├────────────────────────────────────────────────────────────────────┤
-│ Customer │ Staff │ Services │ Date/Time │ Status │ Amount │ Actions│
-├────────────────────────────────────────────────────────────────────┤
-│ John Doe │ Jane  │ Haircut  │ Jan 25, 9am│Pending│ KES 500│ [View]│
-│ ...                                                                 │
-├────────────────────────────────────────────────────────────────────┤
-│ Page 1 of 5 • Showing 1–10 of 50              [Prev] [Next]       │
-└────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────┐
+│ 🔍 Search Appointments                     │
+├────────────────────────────────────────────┤
+│ [All] [Pending] [Confirmed] [Completed]    │
+├────────────────────────────────────────────┤
+│ ┌────────────────────────────────────────┐ │
+│ │ Jane Smith - Haircut                   │ │
+│ │ Jan 25, 9:00 AM          [Confirmed]   │ │
+│ └────────────────────────────────────────┘ │
+│ ┌────────────────────────────────────────┐ │
+│ │ John Doe - Trim                        │ │
+│ │ Jan 26, 2:00 PM          [Pending]     │ │
+│ └────────────────────────────────────────┘ │
+└────────────────────────────────────────────┘
 ```
 
 ## Sketch Wireframe
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│ 🔍 Search... [Status: All ▼] [Staff: All ▼] [From: __] [To: __] [10 ▼] │
-│                                                              [+ Appointment]│
-├──────────────────────────────────────────────────────────────────────────┤
-│ Customer │ Staff │ Services      │ Date/Time      │ Status │ Amount │ Act│
-├──────────────────────────────────────────────────────────────────────────┤
-│ John Doe │ Jane  │ Haircut, Trim │ Jan 25, 9:00AM│ Pending │ KES 500│ 👁│
-│ Mary S.  │ Bob   │ Massage       │ Jan 26, 2:00PM│ Confirm │ KES 800│ 👁│
-│ ...                                                                      │
-├──────────────────────────────────────────────────────────────────────────┤
-│ Page 1 of 5 • Showing 1–10 of 50                    [← Prev] [Next →]   │
-└──────────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│  My Appointments                                     [🔔]  │
+├────────────────────────────────────────────────────────────┤
+│  🔍 Search by staff or service...                          │
+├────────────────────────────────────────────────────────────┤
+│  (All)  (Pending)  (Confirmed)  (Completed)  (Cancelled)   │
+├────────────────────────────────────────────────────────────┤
+│                                                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Jane Smith                                           │  │
+│  │ Haircut, Trim                                        │  │
+│  │ 📅 Jan 25, 2025  🕒 09:00 AM          [ CONFIRMED ]  │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ John Doe                                             │  │
+│  │ Beard Trim                                           │  │
+│  │ 📅 Jan 26, 2025  🕒 02:00 PM          [ PENDING ]    │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │ Bob Wilson                                           │  │
+│  │ Full Massage                                         │  │
+
+│  │ 📅 Jan 28, 2025  🕒 11:30 AM          [ COMPLETED ]  │  │
+│  └──────────────────────────────────────────────────────┘  │
+│                                                            │
+│                                           ┌──────────┐     │
+│                                           │ [+] Book │     │
+│                                           └──────────┘     │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ## Form Inputs
-- **Search Input:** Text input with debounce (500ms) using `input-search` class. Searches by customer name or email.
-- **Status Filter:** Select dropdown with options: All, Pending, Confirmed, Completed, Cancelled, No Show.
-- **Staff Filter:** Select dropdown with options: All, and list of staff members (fetched from users with staff role).
-- **Start Date:** Date input for filtering appointments from a specific date.
-- **End Date:** Date input for filtering appointments until a specific date.
-- **Items Per Page:** Select dropdown with options: 10, 25, 50, 100.
-- **Add Appointment Button:** Primary button linking to `/appointments/new`.
+- **Search Input:** Native `TextInput` with clear button.
+- **Filter Chips:** Horizontal `ScrollView` with `TouchableOpacity` chips for status selection.
 
 ## API Integration
-- **Endpoint:** `GET /api/appointments` with query parameters (page, limit, search, status, staffId, startDate, endDate).
-- **Hook:** `useGetAllAppointments(params)` returns paginated appointment data.
-- **Response Structure:**
-  ```typescript
-  {
-    appointments: IAppointment[],
-    pagination: {
-      page: number,
-      limit: number,
-      total: number,
-      totalPages: number
-    }
-  }
-  ```
-- **Access:** Admin/Staff only (enforced by backend).
+- **Endpoint:** `GET /api/appointments/my` with query params.
+- **Hook:** `useGetMyAppointments(params)`.
 
 ## Components Used
-- React Router DOM: `Link` for navigation.
-- React Icons: `MdVisibility`, `MdAdd` for action buttons.
-- TanStack Query: `useGetAllAppointments` hook.
-- Custom Components: `Pagination` component for pagination controls.
-- Utility Functions: `formatAppointmentDateTime`, `formatAppointmentStatus`, `getAppointmentStatusVariant` from `@/utils/appointmentUtils`, `formatCurrency` from `@/utils/paymentUtils`.
-- Tailwind CSS classes: `input-search`, `btn-primary`, `btn-ghost`, `btn-sm`, `badge`, `badge-success`, `badge-error`, `badge-soft`, `alert-error`.
+- Expo Router: `useRouter`, `Stack`.
+- UI Components: `Card`, `Badge`, `Input`, `Loading`.
+- Icons: `MaterialIcons`.
 
 ## Error Handling
-- **Loading State:** Display 5 skeleton rows with `animate-pulse` effect in table body.
-- **Error State:** Show inline `alert-error` with API error message from `error.response?.data?.message`.
-- **Empty State:** Display "No appointments found" message when `appointments.length === 0`.
-- **Network Errors:** Gracefully handle network failures with user-friendly messages.
+- **Pull-to-Refresh:** Users can manually trigger a refetch if an error occurs or to check for updates.
+- **Infinite Scroll Error:** Handle failures when loading more pages.
 
 ## Navigation Flow
-- Route: `/appointments`.
-- **View Action:** Navigate to `/appointments/:id` (AppointmentDetails page) using icon button with `MdVisibility` icon.
-- **Add Appointment Button:** Navigate to `/appointments/new` (AppointmentAdd page) with `MdAdd` icon.
-
-## Functions Involved
-- **`formatAppointmentDateTime`** — Formats appointment date and time for display (from `@/utils/appointmentUtils`).
-  ```tsx
-  import { formatAppointmentDateTime } from '@/utils/appointmentUtils';
-  // Usage: formatAppointmentDateTime(appointment.startTime)
-  ```
-
-- **`formatAppointmentStatus`** — Formats appointment status for display (from `@/utils/appointmentUtils`).
-  ```tsx
-  import { formatAppointmentStatus } from '@/utils/appointmentUtils';
-  // Usage: formatAppointmentStatus(appointment.status)
-  ```
-
-- **`getAppointmentStatusVariant`** — Gets badge variant for appointment status (from `@/utils/appointmentUtils`).
-  ```tsx
-  import { getAppointmentStatusVariant } from '@/utils/appointmentUtils';
-  // Usage: getAppointmentStatusVariant(appointment.status)
-  ```
-
-- **`formatCurrency`** — Formats currency amount for display (from `@/utils/paymentUtils`).
-  ```tsx
-  import { formatCurrency } from '@/utils/paymentUtils';
-  // Usage: formatCurrency(appointment.bookingFeeAmount, 'KES')
-  ```
-
-- **`debounceSearch`** — Debounces search input to reduce API calls.
-  ```tsx
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchTerm);
-      setCurrentPage(1);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
-  ```
+- Route: `/appointment/index`.
+- **Tap Card:** Navigate to `/appointment/[id]`.
+- **Floating Action Button:** Navigate to `/appointment/select-service` to start booking.
 
 ## Implementation Details
-- **Table Structure:** Uses semantic HTML `<table>` elements with proper `<thead>`, `<tbody>`, `<tr>`, `<th>`, `<td>` tags for accessibility.
-- **Horizontal Scroll:** Table container has `overflow-x-auto` class with `min-w-[1000px]` on table to enable horizontal scrolling when content overflows on smaller screens.
-- **Icons:** Action buttons use Material Design icons (`MdVisibility`) for visual clarity.
-- **Utility Functions:** Reusable functions are imported from utility files for consistency across components.
-- **Status Badges:** Use color-coded badges to indicate appointment status (pending, confirmed, completed, etc.).
-- **Service Display:** Show comma-separated list of service names, or "N services" if multiple.
-
-## Future Enhancements
-- Bulk actions (cancel multiple appointments, export to CSV).
-- Column sorting (by date, customer, staff, status).
-- Calendar view option.
-- Advanced filters (customer, service type, payment status).
-- Appointment statistics dashboard integration.
+- **FlatList Optimization:** Uses `keyExtractor` and `renderItem` for performance.
+- **RefreshControl:** Standard mobile pull-to-refresh implementation.

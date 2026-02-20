@@ -8,7 +8,7 @@ export default function NotFoundScreen() {
       <View className="flex-1 items-center justify-center bg-white px-6">
         <Text className="font-inter text-6xl font-bold text-brand-primary">404</Text>
         <Text className="mt-4 text-center font-inter text-base text-slate-700">
-          This screen doesn't exist.
+          This screen doesn&apos;t exist.
         </Text>
         <Link href="/(public)/" className="btn-primary btn-sm mt-6">
           <Text className="font-inter text-sm font-semibold text-white">Go to homepage</Text>
