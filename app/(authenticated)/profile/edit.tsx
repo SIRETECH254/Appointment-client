@@ -146,7 +146,7 @@ export default function EditProfileScreen() {
 
       setInlineMessage({ type: 'success', text: 'Profile updated successfully!' });
       queryClient.invalidateQueries({ queryKey: ['profile'] }); // Invalidates the 'profile' query to refetch latest data.
-      router.replace('/(authenticated)/(tabs)/profile'); // Navigates back to the profile page.
+      router.replace('/(authenticated)/profile'); // Navigates back to the profile page.
     } catch (err: any) {
       setInlineMessage({ type: 'error', text: err.message || 'Failed to update profile.' }); // Displays specific API error or generic fallback.
     }
@@ -171,7 +171,7 @@ export default function EditProfileScreen() {
       <View className="flex-1 items-center justify-center bg-white">
         <Text className="text-red-500">Error: {profileError.message}</Text>
         {/* Navigates back to the profile display page. */}
-        <Link href="/(authenticated)/(tabs)/profile" asChild>
+        <Link href="/(authenticated)/profile" asChild>
           <TouchableOpacity className="mt-4 btn-primary">
             <Text className="text-white">Go Back</Text>
           </TouchableOpacity>
@@ -186,7 +186,7 @@ export default function EditProfileScreen() {
       <View className="flex-1 items-center justify-center bg-white">
         <Text className="text-gray-500 text-center">No profile data available to edit.</Text>
         {/* Navigates back to the profile display page. */}
-        <Link href="/(authenticated)/(tabs)/profile" asChild>
+        <Link href="/(authenticated)/profile" asChild>
           <TouchableOpacity className="mt-4 btn-primary">
             <Text className="text-white">Go Back</Text>
           </TouchableOpacity>
@@ -291,7 +291,7 @@ export default function EditProfileScreen() {
           {/* Action buttons: Cancel and Save changes. */}
           <View className="flex-row justify-end gap-3 mt-6">
             {/* Navigates back to the profile page without saving changes. */}
-            <Link href="/(authenticated)/(tabs)/profile" asChild>
+            <Link href="/(authenticated)/profile" asChild>
               <TouchableOpacity className="btn-ghost">
                 <Text>Cancel</Text>
               </TouchableOpacity>

@@ -139,13 +139,13 @@ export default function ProfileScreen() {
           {/* Action buttons: Edit Profile, Change Password, and Logout. */}
           <View className="flex-col gap-3">
             {/* Navigates to the Edit Profile screen. */}
-            <Link href="/(authenticated)/edit-profile" asChild>
+            <Link href="/(authenticated)/profile/edit" asChild>
               <TouchableOpacity className="btn-primary">
                 <Text className="text-white">Edit Profile</Text>
               </TouchableOpacity>
             </Link>
             {/* Navigates to the Change Password screen. */}
-            <Link href="/(authenticated)/change-password" asChild>
+            <Link href="/(authenticated)/profile/change-password" asChild>
               <TouchableOpacity className="btn-secondary">
                 <Text className="text-gray-700">Change Password</Text>
               </TouchableOpacity>

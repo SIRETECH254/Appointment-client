@@ -172,22 +172,19 @@ appointment-client/
 │   └── (authenticated)/         # Screens requiring login
 │       ├── _layout.tsx          # Authenticated layout
 │       │
-│       ├── (tabs)/              # Main app tabs (without services.tsx)
-│       │   ├── _layout.tsx      # Tab navigator
-│       │   ├── index.tsx        # Home/Dashboard
-│       │   ├── appointments.tsx # My Appointments
-│       │   └── profile.tsx      # Profile
-│       │
-│       ├── book/                # Booking flow
-│       │   ├── _layout.tsx
+│       ├── appointment/
+│       │   ├── index.tsx        # My Appointments
+│       │   ├── [id].tsx         # Appointment details
+│       │   ├── [id]/payment.tsx # Payment screen
 │       │   ├── select-service.tsx
 │       │   ├── select-staff.tsx
 │       │   ├── select-slot.tsx
 │       │   └── confirm.tsx
 │       │
-│       ├── appointments/
-│       │   ├── [id].tsx         # Appointment details
-│       │   └── [id]/payment.tsx # Payment screen
+│       ├── profile/
+│       │   ├── index.tsx        # Profile
+│       │   ├── edit.tsx         # Edit Profile
+│       │   └── change-password.tsx # Change Password
 │       │
 │       ├── payments/
 │       │   ├── [id].tsx         # Payment status
@@ -222,16 +219,21 @@ appointment-client/
 │       ├── TabBar.tsx
 │       └── Container.tsx
 │
+├── tanstack/                    # TanStack Query hooks
+│   ├── index.ts
+│   ├── useAppointments.ts
+│   ├── useAvailability.ts
+│   ├── useContact.ts
+│   ├── useDashboard.ts
+│   ├── useNotifications.ts
+│   ├── usePayments.ts
+│   ├── useServices.ts
+│   └── useUsers.ts
+│
 ├── hooks/
 │   ├── useAuth.ts
 │   ├── useThemeColor.ts
-│   ├── useSocket.ts
-│   └── queries/                 # TanStack Query hooks
-│       ├── useServices.ts
-│       ├── useAppointments.ts
-│       ├── usePayments.ts
-│       ├── useNotifications.ts
-│       └── useAvailability.ts
+│   └── useSocket.ts
 │
 ├── constants/
 │   └── theme.ts                  # Brand colors (gold), typography, spacing
@@ -252,12 +254,6 @@ appointment-client/
 │   ├── slices/
 │   │   └── authSlice.ts
 │   └── persistConfig.ts
-│
-├── providers/
-│   ├── AuthProvider.tsx
-│   ├── QueryProvider.tsx
-│   ├── ReduxProvider.tsx
-│   └── SocketProvider.tsx
 │
 ├── types/                        # Shared TypeScript types
 │   ├── index.ts                  # Re-exports for various types
@@ -282,7 +278,7 @@ appointment-client/
 
 #### 1. **Routing**
 - Expo Router with file-based routing (similar to Next.js).
-- Route groups: `(auth)` for authentication screens, `(tabs)` for main app navigation.
+- Route groups: `(auth)` for authentication screens.
 - Dynamic routes: `[id].tsx` for detail screens, `[token].tsx` for reset password.
 - Layout routes: `_layout.tsx` files define navigation structure.
 - Auth guard: redirect unauthenticated users to login.
@@ -327,12 +323,15 @@ appointment-client/
 
 **Routes:**
 - `(auth)/*` — Authentication screens (login, register, verify-otp, forgot-password, reset-password).
-- `(tabs)/*` — Main app tabs (home, services, appointments, profile).
-- `book/*` — Booking flow screens.
+- `appointment/index` — My Appointments.
+- `appointment/select-service`, `appointment/select-staff`, `appointment/select-slot`, `appointment/confirm` — Booking flow.
 - `appointments/[id]` — Appointment details.
 - `payments/*` — Payment screens.
 - `notifications/*` — Notification screens.
 - `contact` — Contact/Support screen.
+- `profile/index` — Profile.
+- `profile/edit` — Edit Profile.
+- `profile/change-password` — Change Password.
 - `+not-found` — 404 screen.
 
 ---
@@ -352,7 +351,7 @@ appointment-client/
 **Backend:** `POST /api/auth/login`
 
 **Navigation:**
-- On success → `/(tabs)` (home)
+- On success → `/appointment/index` (home)
 - Link to → `/(auth)/register`
 - Link to → `/(auth)/forgot-password`
 - Link to → `/(auth)/verify-otp`
@@ -388,7 +387,7 @@ appointment-client/
 **Backend:** `POST /api/auth/verify-otp`, `POST /api/auth/resend-otp`
 
 **Navigation:**
-- On success → `/(tabs)` (home)
+- On success → `/appointment/index` (home)
 - Link to → `/(auth)/login`
 
 ---
@@ -424,83 +423,31 @@ appointment-client/
 
 ---
 
-### 3. Main App Tabs (`app/(tabs)/`)
+### 3. Authenticated Screens (`app/(authenticated)/`)
 
-#### Home/Dashboard (`app/(tabs)/index.tsx`)
-**Purpose:** Authenticated home; overview and quick actions.
-
-**Features:**
-- Welcome message with user name.
-- Summary stats (upcoming appointments count, pending payments).
-- Quick actions: Book Appointment, View Appointments, View Services.
-- Recent appointments list (last 3-5).
-- Notification bell with unread count badge.
-
-**Route:** `/` (tab index)
-
----
-
-#### Services (`app/(tabs)/services.tsx`)
-**Purpose:** Browse available services.
-
-**Features:**
-- List of active services with cards.
-- Service details: name, description, duration, price.
-- Search and filter (optional).
-- Tap service card → Service details screen.
-- "Book Now" button on each card.
-
-**Backend:** `GET /api/services?status=active`
-
-**Navigation:**
-- Tap service → `book/select-service?serviceId=...`
-- Or → Service details modal/screen
-
----
-
-#### My Appointments (`app/(tabs)/appointments.tsx`)
-**Purpose:** View customer's appointments.
+#### My Appointments (`app/appointment/index.tsx`)
+**Purpose:** View customer's appointments and quick actions.
 
 **Features:**
 - List of appointments with filters (status: PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW).
 - Appointment cards: staff name, services, date/time, status badge, booking fee, remaining amount.
+- Quick actions: Book Appointment, View Services.
 - Pull-to-refresh.
-- Pagination (infinite scroll or load more).
 - Tap appointment → Appointment details.
 
 **Backend:** `GET /api/appointments/my?status=...&page=...&limit=...`
 
 **Navigation:**
 - Tap appointment → `appointments/[id]`
+- Book Appointment → `appointment/select-service`
 
 ---
 
-#### Profile (`app/(tabs)/profile.tsx`)
-**Purpose:** View and manage profile.
-
-**Features:**
-- Display current user (name, email, phone, avatar).
-- Edit profile button.
-- Change password link.
-- Notification preferences toggle.
-- Logout button.
-
-**Backend:** `GET /api/users/profile`, `GET /api/users/notifications`
-
-**Navigation:**
-- Edit profile → Profile edit modal/screen
-- Change password → Change password screen
-- Logout → `/(auth)/login`
-
----
-
-### 4. Booking Flow (`app/book/`)
-
-#### Select Service (`app/book/select-service.tsx`)
+#### Select Service (`app/appointment/select-service.tsx`)
 **Purpose:** Choose service(s) for appointment.
 
 **Features:**
-- List of services (if not selected from services tab).
+- List of services.
 - Multi-select support (can book multiple services).
 - Service cards with duration and price.
 - Total duration and price calculation.
@@ -509,11 +456,11 @@ appointment-client/
 **Backend:** `GET /api/services?status=active`
 
 **Navigation:**
-- Next → `book/select-staff?serviceIds=...`
+- Next → `appointment/select-staff?serviceIds=...`
 
 ---
 
-#### Select Staff (`app/book/select-staff.tsx`)
+#### Select Staff (`app/appointment/select-staff.tsx`)
 **Purpose:** Choose staff member.
 
 **Features:**
@@ -524,11 +471,11 @@ appointment-client/
 **Backend:** `GET /api/staff` (filtered by services)
 
 **Navigation:**
-- Next → `book/select-slot?staffId=...&serviceIds=...`
+- Next → `appointment/select-slot?staffId=...&serviceIds=...`
 
 ---
 
-#### Select Slot (`app/book/select-slot.tsx`)
+#### Select Slot (`app/appointment/select-slot.tsx`)
 **Purpose:** Choose appointment date and time.
 
 **Features:**
@@ -541,11 +488,11 @@ appointment-client/
 **Backend:** `GET /api/availability/slots?staffId=...&serviceId=...&date=...`
 
 **Navigation:**
-- Next → `book/confirm?staffId=...&serviceIds=...&startTime=...&endTime=...`
+- Next → `appointment/confirm?staffId=...&serviceIds=...&startTime=...&endTime=...`
 
 ---
 
-#### Confirm Booking (`app/book/confirm.tsx`)
+#### Confirm Booking (`app/appointment/confirm.tsx`)
 **Purpose:** Review and confirm appointment.
 
 **Features:**
@@ -562,7 +509,26 @@ appointment-client/
 
 ---
 
-### 5. Appointment Details (`app/appointments/[id].tsx`)
+#### Profile (`app/profile/index.tsx`)
+**Purpose:** View and manage profile.
+
+**Features:**
+- Display current user (name, email, phone, avatar).
+- Edit profile button.
+- Change password link.
+- Notification preferences toggle.
+- Logout button.
+
+**Backend:** `GET /api/users/profile`, `GET /api/users/notifications`
+
+**Navigation:**
+- Edit profile → `profile/edit`
+- Change password → `profile/change-password`
+- Logout → `/(auth)/login`
+
+---
+
+### 4. Appointment Details (`app/appointments/[id].tsx`)
 **Purpose:** View single appointment.
 
 **Features:**
@@ -584,7 +550,7 @@ appointment-client/
 
 ---
 
-### 6. Payment Screens
+### 5. Payment Screens
 
 #### Payment (`app/appointments/[id]/payment.tsx`)
 **Purpose:** Initiate payment (booking fee or remaining amount).
@@ -624,7 +590,7 @@ appointment-client/
 
 ---
 
-### 7. Notification Screens
+### 6. Notification Screens
 
 #### Notifications List (`app/notifications/index.tsx`)
 **Purpose:** Notification center.
@@ -663,7 +629,7 @@ appointment-client/
 
 ---
 
-### 8. Contact/Support (`app/contact.tsx`)
+### 7. Contact/Support (`app/contact.tsx`)
 **Purpose:** Submit contact form.
 
 **Features:**
@@ -678,7 +644,7 @@ appointment-client/
 
 ---
 
-### 9. Profile Management
+### 8. Profile Management
 
 #### Edit Profile (`app/profile/edit.tsx`)
 **Purpose:** Edit own profile.
@@ -691,7 +657,7 @@ appointment-client/
 **Backend:** `PUT /api/users/profile`
 
 **Navigation:**
-- On success → `/(tabs)/profile`
+- On success → `profile/index`
 
 ---
 
@@ -706,7 +672,7 @@ appointment-client/
 **Backend:** `PUT /api/users/change-password`
 
 **Navigation:**
-- On success → `/(tabs)/profile`
+- On success → `profile/index`
 
 ---
 

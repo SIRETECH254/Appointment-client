@@ -106,7 +106,7 @@ import { useChangePassword } from '@/tanstack/useUsers';
 - Inline banner displays `success` or `error` state.
 
 ## Navigation Flow
-- Route: `/authenticated/change-password`.
+- Route: `/authenticated/profile/change-password`.
 - On success, the screen remains and clears the form.
 - Uses `useRouter` from `expo-router` for navigation if needed, though this screen clears the form rather than navigating away on success.
 

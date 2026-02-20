@@ -62,7 +62,7 @@ import { useGetProfile } from '@/tanstack/useUsers';
 ## Form Inputs
 - **CTA links** (navigate to edit/change password):
   ```tsx
-  <Link href="/(authenticated)/edit-profile" asChild>
+  <Link href="/(authenticated)/profile/edit" asChild>
     <TouchableOpacity className="btn-primary">
       <Text className="text-white">Edit Profile</Text>
     </TouchableOpacity>
@@ -84,9 +84,9 @@ import { useGetProfile } from '@/tanstack/useUsers';
 - Keep the fallback user data visible even if network request fails.
 
 ## Navigation Flow
-- Route: `/(authenticated)/(tabs)/profile`.
-- `Edit Profile` ➞ `router.push('/(authenticated)/edit-profile')`.
-- `Change Password` ➞ `router.push('/(authenticated)/change-password')`.
+- Route: `/(authenticated)/profile`.
+- `Edit Profile` ➞ `router.push('/(authenticated)/profile/edit')`.
+- `Change Password` ➞ `router.push('/(authenticated)/profile/change-password')`.
 
 ## Functions Involved
 - **`formatDateTime`** — normalizes timestamps for display.

@@ -121,9 +121,9 @@ import { useUpdateProfile, useGetProfile } from '@/tanstack/useUsers';
 - Inline feedback beneath the form.
 
 ## Navigation Flow
-- Route: `/authenticated/edit-profile`.
-- `Cancel` ➞ `router.replace('/(authenticated)/(tabs)/profile')`.
-- On successful update, navigate back to `router.replace('/(authenticated)/(tabs)/profile')`.
+- Route: `/authenticated/profile/edit`.
+- `Cancel` ➞ `router.replace('/(authenticated)/profile')`.
+- On successful update, navigate back to `router.replace('/(authenticated)/profile')`.
 
 ## Functions Involved
 - **`pickImage`** — handles image selection using `expo-image-picker` and creates preview URL.

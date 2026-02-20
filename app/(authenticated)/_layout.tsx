@@ -35,9 +35,10 @@ export default function AuthenticatedLayout() {
           screenOptions={{
             headerShown: false,
           }}>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="edit-profile" options={{ headerShown: false }} />
-          <Stack.Screen name="change-password" options={{ headerShown: false }} />
+          <Stack.Screen name="appointment/index" options={{ headerShown: false }} />
+          <Stack.Screen name="profile/index" options={{ headerShown: false }} />
+          <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+          <Stack.Screen name="profile/change-password" options={{ headerShown: false }} />
           <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
           <Stack.Screen name="notifications/[id]" options={{ headerShown: false }} />
         </Stack>

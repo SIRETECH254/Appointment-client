@@ -44,7 +44,7 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
 
   const handleProfile = () => {
     setIsMenuOpen(false);
-    router.push('/(authenticated)/(tabs)/profile');
+    router.push('/(authenticated)/profile');
   };
 
   const handleLogout = async () => {
