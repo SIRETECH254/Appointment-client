@@ -6,9 +6,6 @@ import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
 import { en, registerTranslation } from 'react-native-paper-dates';
 
-// Register date picker locale
-registerTranslation('en', en);
-
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from '../redux';
@@ -18,6 +15,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'; // Tan
 import { AuthProvider } from '../contexts/AuthContext'; // Import AuthProvider
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
+
+// Register date picker locale
+registerTranslation('en', en);
 
 // Create a client
 const queryClient = new QueryClient({

@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -50,7 +50,7 @@ const PaymentHistoryScreen = () => {
   }), [debouncedSearch, filterStatus]);
 
   // Fetch payments using TanStack Query
-  const { data, isLoading, isError, refetch, isFetching } = useGetMyPayments(params);
+  const { data, isLoading, refetch, isFetching } = useGetMyPayments(params);
   const payments = data?.payments || [];
 
   /**

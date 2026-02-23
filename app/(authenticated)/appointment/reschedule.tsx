@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
-  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { DatePickerModal } from 'react-native-paper-dates';
@@ -79,7 +78,7 @@ const RescheduleAppointmentScreen = () => {
       
       Alert.alert('Success', 'Appointment rescheduled successfully');
       router.push(`/(authenticated)/appointment/${id}`);
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   }, [id, selectedSlot, rescheduleMutation, router]);

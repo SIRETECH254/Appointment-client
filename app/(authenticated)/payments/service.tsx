@@ -31,7 +31,7 @@ const ServicePaymentScreen = () => {
 
   // Queries
   const { data: servicesData, isLoading: isLoadingServices } = useGetAllServices({ status: 'active' });
-  const allServices: IService[] = servicesData?.services || [];
+  const allServices: IService[] = useMemo(() => servicesData?.services || [], [servicesData]);
 
   // Mutations
   const initiateMutation = useInitiatePayment();
@@ -81,7 +81,7 @@ const ServicePaymentScreen = () => {
         pathname: '/(authenticated)/payments/status',
         params: { paymentId, checkoutId }
       });
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   }, [selectedServices, method, phone, initiateMutation, router]);

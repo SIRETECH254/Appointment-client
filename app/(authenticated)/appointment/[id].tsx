@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import {
   View,
   Text,
@@ -54,7 +54,7 @@ const AppointmentDetailsScreen = () => {
               await cancelMutation.mutateAsync({ appointmentId: id!, data: {} });
               Alert.alert('Success', 'Appointment cancelled successfully');
               refetch();
-            } catch (error) {
+            } catch {
               // Error handled by mutation
             }
           },

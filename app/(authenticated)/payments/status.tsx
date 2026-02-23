@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,20 +6,15 @@ import {
   ActivityIndicator,
   SafeAreaView,
   ScrollView,
-  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import io, { Socket } from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import { useGetPaymentById, useQueryMpesaStatus } from '@/tanstack/usePayments';
 import { API_BASE_URL } from '@/api/config';
 import {
-  formatPaymentStatus,
-  getPaymentStatusVariant,
   formatCurrency,
   formatPaymentMethod,
 } from '@/utils/paymentUtils';
-import { formatDateTimeWithTime } from '@/utils/notificationUtils';
-import type { IPayment } from '@/types/api.types';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 // Constants
@@ -45,7 +40,7 @@ const PaymentStatusScreen = () => {
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Queries
-  const { data: payment, isLoading: isLoadingPayment, refetch: refetchPayment } = useGetPaymentById(paymentId!);
+  const { data: payment, isLoading: isLoadingPayment } = useGetPaymentById(paymentId!);
   
   // Fallback M-Pesa query (Daraja API)
   const { refetch: refetchMpesaStatus } = useQueryMpesaStatus(checkoutId!, { enabled: false });
@@ -162,7 +157,6 @@ const PaymentStatusScreen = () => {
 
   // Derived display status
   const currentStatus = socketStatus || payment?.status || 'PENDING';
-  const statusVariant = getPaymentStatusVariant(currentStatus);
 
   if (isLoadingPayment) {
     return (

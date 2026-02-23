@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useRouter } from 'expo-router';
 import {
   Image,
@@ -6,7 +6,6 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Platform,
   ActivityIndicator,
   Alert,
   ScrollView
@@ -14,7 +13,6 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
-import { useAuth } from '../../../contexts/AuthContext';
 import { useUpdateProfile, useGetProfile } from '@/tanstack/useUsers';
 
 type InlineMessage = {

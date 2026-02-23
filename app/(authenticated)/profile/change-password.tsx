@@ -1,6 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Text, TextInput, TouchableOpacity, View, ActivityIndicator, ScrollView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Text, TextInput, TouchableOpacity, View, ScrollView } from 'react-native';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useQueryClient } from '@tanstack/react-query'; // Import useQueryClient
 import { useChangePassword } from '@/tanstack/useUsers';
@@ -11,7 +10,6 @@ type InlineMessage = {
 };
 
 export default function ChangePasswordScreen() {
-  const router = useRouter();
   // useQueryClient to access and invalidate TanStack Query caches.
   const queryClient = useQueryClient();
   // useChangePassword handles the mutation for changing the user's password.

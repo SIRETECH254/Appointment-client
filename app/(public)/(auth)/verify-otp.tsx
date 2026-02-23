@@ -11,7 +11,6 @@ export default function VerifyOTPScreen() {
   // State for form inputs (email, otp), submission status, resending status, and countdown.
   const [form, setForm] = useState({ email: '', otp: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isResending, setIsResending] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [resendCountdown, setResendCountdown] = useState(0);
   const [canResend, setCanResend] = useState(true);
@@ -90,7 +89,6 @@ export default function VerifyOTPScreen() {
     }
 
     setInlineError(null);
-    setIsResending(true);
 
     try {
       // Calls the resendOTP function from AuthContext.
@@ -104,7 +102,7 @@ export default function VerifyOTPScreen() {
       setResendCountdown(60); // Sets the countdown duration.
       setCanResend(false); // Disables the resend button.
     } finally {
-      setIsResending(false);
+      // No longer using isResending
     }
   }, [form.email, resendOTP]);
 

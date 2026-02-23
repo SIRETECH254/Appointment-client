@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
-  Platform,
 } from 'react-native';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { useRouter, Stack } from 'expo-router';
@@ -45,7 +44,7 @@ const AppointmentCreateScreen = () => {
   const { data: staffList, isLoading: isLoadingStaff } = useGetAllStaff();
 
   const { data: allServicesData, isLoading: isLoadingServices } = useGetAllServices({ status: 'active' });
-  const allServices: IService[] = allServicesData?.services || [];
+  const allServices: IService[] = useMemo(() => allServicesData?.services || [], [allServicesData]);
 
   // Slots Query - only runs when staff, services, and date are selected
   const slotsParams = useMemo(() => {
@@ -143,7 +142,7 @@ const AppointmentCreateScreen = () => {
         notes,
       });
       router.push('/(authenticated)/appointment');
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   };

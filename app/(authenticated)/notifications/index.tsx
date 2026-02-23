@@ -13,7 +13,6 @@ import { useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import {
   useGetNotifications,
-  useMarkNotificationAsRead,
   useMarkAllNotificationsAsRead,
   useDeleteNotification,
 } from '@/tanstack/useNotifications';
@@ -33,7 +32,7 @@ const NotificationListScreen = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [page, setPage] = useState(1);
+  const [page] = useState(1);
 
   // Debounce search input
   useEffect(() => {
@@ -52,11 +51,10 @@ const NotificationListScreen = () => {
   }), [page, debouncedSearch, filterCategory]);
 
   // Fetch notifications
-  const { data, isLoading, isError, refetch, isFetching } = useGetNotifications(params);
+  const { data, isLoading, refetch, isFetching } = useGetNotifications(params);
   const notifications = data?.notifications || [];
 
   // Mutations
-  const markAsReadMutation = useMarkNotificationAsRead();
   const markAllAsReadMutation = useMarkAllNotificationsAsRead();
   const deleteNotificationMutation = useDeleteNotification();
 

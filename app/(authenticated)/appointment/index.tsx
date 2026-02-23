@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -45,7 +45,7 @@ const AppointmentListScreen = () => {
   }), [debouncedSearch, filterStatus]);
 
   // Fetch appointments using the custom TanStack hook
-  const { data, isLoading, isError, refetch, isFetching } = useGetMyAppointments(params);
+  const { data, isLoading, refetch, isFetching } = useGetMyAppointments(params);
   const appointments = data || [];
 
 

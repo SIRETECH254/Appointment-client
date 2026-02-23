@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -79,7 +79,7 @@ const AppointmentPaymentScreen = () => {
           params: { paymentId, checkoutId }
         });
       }
-    } catch (error) {
+    } catch {
       // Error handled by mutation
     }
   }, [id, method, phone, isPending, amountToPay, confirmMutation, servicePaymentMutation, router]);

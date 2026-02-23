@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,6 @@ import {
   formatCurrency,
 } from '@/utils/paymentUtils';
 import { formatDateTimeWithTime } from '@/utils/notificationUtils';
-import type { IPayment } from '@/types/api.types';
 
 /**
  * Payment Details Screen
@@ -28,7 +27,7 @@ const PaymentDetailsScreen = () => {
   const router = useRouter();
 
   // Fetch payment details using TanStack Query
-  const { data: payment, isLoading, isError, refetch } = useGetPaymentById(id!);
+  const { data: payment, isLoading, isError } = useGetPaymentById(id!);
 
   if (isLoading) {
     return (
