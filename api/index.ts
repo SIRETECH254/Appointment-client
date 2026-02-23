@@ -26,6 +26,7 @@ import type {
   // Payment types
   InitiatePaymentPayload,
   ServicePaymentPayload,
+  GetMyPaymentsParams,
   // Notification types
   GetNotificationsParams,
   // Contact types
@@ -155,7 +156,13 @@ export const paymentAPI = {
 
   servicePayment: (paymentData: ServicePaymentPayload) => api.post('/api/payments/service-payment', paymentData),
 
+  getAllPayments: (params?: any) => api.get('/api/payments', { params }),
+
+  getMyPayments: (params?: GetMyPaymentsParams) => api.get('/api/payments/my-payments', { params }),
+
   getPayment: (paymentId: string) => api.get(`/api/payments/${paymentId}`),
+
+  queryMpesaStatus: (checkoutRequestId: string) => api.get(`/api/payments/status/${checkoutRequestId}`),
 };
 
 // ============================================

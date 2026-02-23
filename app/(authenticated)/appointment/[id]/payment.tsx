@@ -55,20 +55,29 @@ const AppointmentPaymentScreen = () => {
           },
         });
         
-        // Success handling - typically navigate to a status check or success page
-        Alert.alert('Payment Initiated', 'Please check your phone for the M-Pesa prompt.');
-        router.push(`/(authenticated)/appointment/${id}`);
+        const paymentId = result.payment?._id || result.paymentId;
+        const checkoutId = result.gateway?.checkoutRequestId || result.checkoutRequestId;
+        
+        router.push({
+          pathname: '/(authenticated)/payments/status',
+          params: { paymentId, checkoutId }
+        });
       } else {
         // Paying remaining balance for a confirmed appointment
-        await servicePaymentMutation.mutateAsync({
+        const result = await servicePaymentMutation.mutateAsync({
           appointmentId: id!,
           method: method.toUpperCase() as 'MPESA' | 'PAYSTACK',
           phone: phone,
           amount: amountToPay!,
         });
         
-        Alert.alert('Payment Initiated', 'Please check your phone for the M-Pesa prompt.');
-        router.push(`/(authenticated)/appointment/${id}`);
+        const paymentId = result.payment?._id || result.paymentId;
+        const checkoutId = result.gateway?.checkoutRequestId || result.checkoutRequestId;
+        
+        router.push({
+          pathname: '/(authenticated)/payments/status',
+          params: { paymentId, checkoutId }
+        });
       }
     } catch (error) {
       // Error handled by mutation

@@ -186,6 +186,15 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
                         <Text className="font-inter text-sm text-gray-700">My Appointments</Text>
                       </TouchableOpacity>
                       <TouchableOpacity
+                        onPress={() => {
+                          setIsMenuOpen(false);
+                          router.push('/(authenticated)/payments');
+                        }}
+                        className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
+                        <MaterialIcons name="payments" size={18} color="#374151" />
+                        <Text className="font-inter text-sm text-gray-700">View Payments</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
                         onPress={handleLogout}
                         className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
                         <MaterialIcons name="logout" size={18} color="#DC2626" />

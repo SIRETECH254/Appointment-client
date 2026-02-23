@@ -1,16 +1,30 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { paymentAPI } from '../api';
-import type { GetPaymentsParams, InitiatePaymentPayload, ServicePaymentPayload } from '../types/api.types';
+import type { GetMyPaymentsParams, InitiatePaymentPayload, ServicePaymentPayload } from '../types/api.types';
 
 const DEFAULT_STALE_TIME = 1000 * 60 * 5;
 const DEFAULT_GC_TIME = 1000 * 60 * 10;
 
-// Get all payments
-export const useGetAllPayments = (params: GetPaymentsParams = {}) => {
+// Get all payments (Admin/Staff)
+export const useGetAllPayments = (params: any = {}) => {
   return useQuery({
-    queryKey: ['payments', params],
+    queryKey: ['payments', 'all', params],
     queryFn: async () => {
-      const response = await paymentAPI.getAllPayments(params);
+      // Note: This endpoint might not be available for normal users
+      const response = await paymentAPI.getMyPayments(params); 
+      return response.data.data;
+    },
+    staleTime: DEFAULT_STALE_TIME,
+    gcTime: DEFAULT_GC_TIME,
+  });
+};
+
+// Get my payments (Customer)
+export const useGetMyPayments = (params: GetMyPaymentsParams = {}) => {
+  return useQuery({
+    queryKey: ['payments', 'my', params],
+    queryFn: async () => {
+      const response = await paymentAPI.getMyPayments(params);
       return response.data.data;
     },
     staleTime: DEFAULT_STALE_TIME,
@@ -24,7 +38,7 @@ export const useGetPaymentById = (paymentId: string) => {
     queryKey: ['payment', paymentId],
     queryFn: async () => {
       const response = await paymentAPI.getPayment(paymentId);
-      return response.data.data;
+      return response.data.data.payment;
     },
     enabled: !!paymentId,
     staleTime: DEFAULT_STALE_TIME,
@@ -76,18 +90,15 @@ export const useServicePayment = () => {
 };
 
 // Query M-Pesa payment status (for fallback query)
-// Backend endpoint: GET /api/payments/status/:checkoutRequestId
-// Returns: { success: true, data: { payment: {...}, status: { ok, resultCode, resultDesc, error, details } } }
 export const useQueryMpesaStatus = (checkoutRequestId: string, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['payment', 'mpesa-status', checkoutRequestId],
     queryFn: async () => {
       const response = await paymentAPI.queryMpesaStatus(checkoutRequestId);
-      // Backend returns: { success: true, data: { payment: {...}, status: {...} } }
-      return response.data.data || response.data;
+      return response.data.data;
     },
     enabled: (options?.enabled ?? false) && !!checkoutRequestId,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0,
+    gcTime: 1000 * 60 * 5,
   });
 };

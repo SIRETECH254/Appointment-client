@@ -186,6 +186,7 @@ export interface InitiatePaymentPayload {
   appointmentId: string;
   method: 'MPESA' | 'PAYSTACK';
   phone: string;
+  services?: string[];
 }
 
 export interface ServicePaymentPayload {
@@ -195,17 +196,34 @@ export interface ServicePaymentPayload {
   amount: number;
 }
 
+export interface GetMyPaymentsParams extends PaginationParams {
+  method?: string;
+}
+
 export interface Payment {
   _id: string;
-  appointmentId: string;
-  paymentMethod: 'mpesa' | 'paystack';
+  paymentNumber: string;
+  customerId: string;
+  appointmentId: string | any;
   amount: number;
-  status: 'pending' | 'completed' | 'failed';
-  type: 'booking_fee' | 'service_payment';
-  checkoutRequestId?: string;
+  currency: string;
+  type: string;
+  method: 'MPESA' | 'PAYSTACK' | 'CASH';
+  status: 'PENDING' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+  processorRefs?: {
+    daraja?: {
+      merchantRequestId?: string;
+      checkoutRequestId?: string;
+    };
+    paystack?: {
+      reference?: string;
+    };
+  };
   createdAt: string;
   updatedAt: string;
 }
+
+export type IPayment = Payment;
 
 // Notification Types
 export interface GetNotificationsParams extends PaginationParams {

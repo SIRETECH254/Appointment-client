@@ -51,15 +51,26 @@ const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <Text className="font-inter text-sm font-medium text-gray-700">Services</Text>
         </TouchableOpacity>
         {isAuthenticated && (
-          <TouchableOpacity
-            onPress={() => {
-              router.push('/(authenticated)/appointment');
-              onClose();
-            }}
-            className="flex-row items-center gap-3 rounded-xl px-3 py-3">
-            <MaterialIcons name="calendar-today" size={20} color="#374151" />
-            <Text className="font-inter text-sm font-medium text-gray-700">Appointments</Text>
-          </TouchableOpacity>
+          <>
+            <TouchableOpacity
+              onPress={() => {
+                router.push('/(authenticated)/appointment');
+                onClose();
+              }}
+              className="flex-row items-center gap-3 rounded-xl px-3 py-3">
+              <MaterialIcons name="calendar-today" size={20} color="#374151" />
+              <Text className="font-inter text-sm font-medium text-gray-700">Appointments</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => {
+                router.push('/(authenticated)/payments');
+                onClose();
+              }}
+              className="flex-row items-center gap-3 rounded-xl px-3 py-3">
+              <MaterialIcons name="payments" size={20} color="#374151" />
+              <Text className="font-inter text-sm font-medium text-gray-700">Payments</Text>
+            </TouchableOpacity>
+          </>
         )}
         <TouchableOpacity
           onPress={() => {

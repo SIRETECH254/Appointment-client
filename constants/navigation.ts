@@ -13,5 +13,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: 'Contact', path: '/(public)/contact', icon: 'mail-outline', end: true },
   // Future authenticated routes
   { label: 'Appointments', path: '/(authenticated)/appointment', icon: 'calendar-month', end: true },
+  { label: 'Payments', path: '/(authenticated)/payments', icon: 'payments', end: true },
   { label: 'Profile', path: '/(authenticated)/profile', icon: 'account-circle', end: true },
 ];
