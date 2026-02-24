@@ -1,4 +1,4 @@
-import { ImageBackground, Text, View, useWindowDimensions, TouchableOpacity, ScrollView } from 'react-native';
+import { ImageBackground, Text, View, useWindowDimensions, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { Link } from 'expo-router'; // Import Link
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'; // Import MaterialIcons for icons
 
@@ -176,6 +176,24 @@ export default function HomePage() {
             <ReviewCard key={review.id} review={review} />
           ))}
         </ScrollView>
+      </View>
+
+      {/* Newsletter Section */}
+      <View className="bg-brand-tint p-8 items-center justify-center space-y-4">
+        <Text className="text-gray-800 text-3xl font-bold text-center">Stay Updated!</Text>
+        <Text className="text-gray-800 text-lg text-center max-w-xl">
+          Subscribe to our newsletter for exclusive offers, new services, and wellness tips delivered straight to your inbox.
+        </Text>
+        <View className="w-full max-w-md flex-row items-center bg-white rounded-full shadow-lg">
+          <TextInput
+            placeholder="Enter your email"
+            keyboardType="email-address"
+            className="flex-1 pl-3 text-base text-gray-800 border-white focus:border-brand-primary rounded-l-full p-1 "
+          />
+          <TouchableOpacity className="bg-brand-primary py-2 px-2 rounded-full flex-shrink">
+            <Text className="text-white font-semibold text-base whitespace-nowrap">Subscribe</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
     </ScrollView>
