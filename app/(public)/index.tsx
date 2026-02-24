@@ -8,6 +8,7 @@ import { useGetAllServices } from '../../tanstack/useServices';
 // Import custom UI components
 import ServiceCard from '../../components/ui/ServiceCard'; 
 import ServiceCardSkeleton from '../../components/ui/ServiceCardSkeleton'; 
+import ReviewCard from '../../components/ui/ReviewCard'; // Import ReviewCard
 
 // Import types
 import { Service } from '../../types/api.types'; 
@@ -167,6 +168,83 @@ export default function HomePage() {
         </Link>
       </View>
 
+      {/* Customer Reviews Section */}
+      <View className="py-4 bg-gray-100 pb-8">
+        <Text className="text-3xl font-bold mb-6 text-center text-brand-primary">What Our Clients Say</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-2">
+          {dummyReviews.map((review) => (
+            <ReviewCard key={review.id} review={review} />
+          ))}
+        </ScrollView>
+      </View>
+
     </ScrollView>
   );
 }
+
+const dummyReviews = [
+  {
+    id: '1',
+    avatar: 'https://randomuser.me/api/portraits/women/1.jpg',
+    customerName: 'Alice Smith',
+    rating: 5,
+    comment: 'Absolutely fantastic service! My experience was truly relaxing and professional. Highly recommend!',
+    timeAgo: '2 hours ago',
+  },
+  {
+    id: '2',
+    avatar: 'https://randomuser.me/api/portraits/men/2.jpg',
+    customerName: 'Bob Johnson',
+    rating: 4,
+    comment: 'Great place, friendly staff. The service was exactly what I needed after a long week. Will be back!',
+    timeAgo: '1 day ago',
+  },
+  {
+    id: '3',
+    avatar: 'https://randomuser.me/api/portraits/women/3.jpg',
+    customerName: 'Carol White',
+    rating: 5,
+    comment: 'Impeccable attention to detail and a serene environment. Best spa experience I\'ve had in years.',
+    timeAgo: '3 days ago',
+  },
+  {
+    id: '4',
+    avatar: 'https://randomuser.me/api/portraits/men/4.jpg',
+    customerName: 'David Brown',
+    rating: 3,
+    comment: 'Good service, but a bit pricey for the duration. Still, enjoyed the treatment.',
+    timeAgo: '5 days ago',
+  },
+  {
+    id: '5',
+    avatar: 'https://randomuser.me/api/portraits/women/5.jpg',
+    customerName: 'Eve Davis',
+    rating: 5,
+    comment: 'From booking to departure, everything was seamless. The staff were wonderful and the results amazing.',
+    timeAgo: '1 week ago',
+  },
+  {
+    id: '6',
+    avatar: 'https://randomuser.me/api/portraits/men/6.jpg',
+    customerName: 'Frank Miller',
+    rating: 4,
+    comment: 'Relaxing atmosphere and skilled therapists. A perfect escape from daily stress.',
+    timeAgo: '2 weeks ago',
+  },
+  {
+    id: '7',
+    avatar: 'https://randomuser.me/api/portraits/women/7.jpg',
+    customerName: 'Grace Wilson',
+    rating: 5,
+    comment: 'My go-to place for pampering! Always leave feeling refreshed and rejuvenated.',
+    timeAgo: '3 weeks ago',
+  },
+  {
+    id: '8',
+    avatar: 'https://randomuser.me/api/portraits/men/8.jpg',
+    customerName: 'Henry Moore',
+    rating: 4,
+    comment: 'Solid experience. The facility was clean and the booking process was easy. Happy with my visit.',
+    timeAgo: '1 month ago',
+  },
+];
