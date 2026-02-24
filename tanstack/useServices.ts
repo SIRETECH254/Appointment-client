@@ -11,7 +11,9 @@ export const useGetAllServices = (params: GetServicesParams = {}) => {
     queryKey: ['services', params],
     queryFn: async () => {
       const response = await serviceAPI.getAllServices(params);
-      return response.data.data;
+      // Ensure the returned data is an array of services.
+      // Assuming response.data.data might be { services: Service[] } or Service[] directly.
+      return response.data.data.services || response.data.data;
     },
     staleTime: DEFAULT_STALE_TIME,
     gcTime: DEFAULT_GC_TIME,
