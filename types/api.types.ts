@@ -259,6 +259,23 @@ export interface Notification {
 export type INotification = Notification;
 
 // Contact Types
+export interface IContact {
+  _id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  subject: string;
+  message: string;
+  userId?: string | null;  // set when submitter is authenticated
+  status: "NEW" | "READ" | "REPLIED" | "ARCHIVED";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface GetContactMessagesParams extends PaginationParams {
+  status?: "NEW" | "READ" | "REPLIED" | "ARCHIVED";
+}
+
 export interface SubmitContactPayload {
   name: string;
   email: string;

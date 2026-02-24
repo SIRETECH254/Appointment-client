@@ -31,6 +31,8 @@ import type {
   GetNotificationsParams,
   // Contact types
   SubmitContactPayload,
+  GetContactMessagesParams,
+  IContact,
   // Common types
   PaginationParams,
 } from '../types/api.types';
@@ -191,6 +193,15 @@ export const notificationAPI = {
 // ============================================
 export const contactAPI = {
   submitMessage: (messageData: SubmitContactPayload) => api.post('/api/contact', messageData),
+
+  // Admin endpoint: Get all contact messages
+  getContactMessages: (params?: GetContactMessagesParams) => api.get('/api/contact', { params }),
+
+  // Admin endpoint: Get a single contact message by ID
+  getContactMessageById: (contactId: string) => api.get(`/api/contact/${contactId}`),
+
+  // Admin endpoint: Update a contact message (e.g., status)
+  updateContactMessage: (contactId: string, data: Partial<IContact>) => api.patch(`/api/contact/${contactId}`, data),
 };
 
 

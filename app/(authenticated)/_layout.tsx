@@ -49,6 +49,8 @@ export default function AuthenticatedLayout() {
           <Stack.Screen name="profile/change-password" options={{ headerShown: false }} />
           <Stack.Screen name="notifications/index" options={{ headerShown: false }} />
           <Stack.Screen name="notifications/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="contact/index" options={{ headerShown: false }} />
+          <Stack.Screen name="contact/[id]" options={{ headerShown: false }} />
         </Stack>
       </View>
       <Footer />
