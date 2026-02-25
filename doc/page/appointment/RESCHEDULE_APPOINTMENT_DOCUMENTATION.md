@@ -26,12 +26,13 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ## Context and State Management
 - **Route Params:** `useLocalSearchParams()` extracts `id` (appointmentId).
 - **TanStack Query:** `useGetAppointment(id)` fetches details.
-- **Availability Hook:** `useGetSlots(params)` for new availability selection.
+- **Availability Hook:** `useGetSlots(params)` for new availability selection (only fetches when manually triggered).
 - **Reschedule Mutation:** `useRescheduleAppointment()` mutation.
 - **Local State:**
-  - `selectedDate`: Date for new slot selection.
-  - `selectedSlot`: Chosen time slot.
-  - `isRescheduling`: Loading state.
+  - `selectedDate`: Date for new slot selection (starts as null, no auto-selection).
+  - `selectedSlot`: Chosen time slot or null.
+  - `showDatePicker`: Boolean for date picker modal visibility.
+  - `shouldFetchSlots`: Boolean to control when slots are fetched (only after clicking "Check Availability").
 
 ## UI Structure
 - **ScrollView:** Full mobile scroll area.
@@ -49,12 +50,19 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 │ Jan 25, 9:00 AM                            │
 ├────────────────────────────────────────────┤
 │ Select New Date:                           │
-│ [ < ]   January 26, 2025   [ > ]           │
+│ [ Select a date ]              [ Change ]   │
+│                                            │
+│ [ Check Availability ] (Disabled until     │
+│                          date selected)    │
 ├────────────────────────────────────────────┤
+│ (Slots only shown after clicking button)   │
+│                                            │
 │ Available Slots:                           │
+│ [Message: "No working hours for this day"] │
 │ [ 10:00 AM ]    [ 11:00 AM ]               │
 │ [ 12:00 PM ]    [ 01:00 PM ]               │
 ├────────────────────────────────────────────┤
+│ [Error Message if reschedule fails]        │
 │ [ Confirm Reschedule ]                     │
 └────────────────────────────────────────────┘
 ```
@@ -69,6 +77,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **Cancel:** `router.back()`.
 
 ## Implementation Details
-- **Slot Selection:** Real-time feedback using `useAvailability` whenever the date changes.
-- **Confirmation Alert:** Native `Alert.alert` to confirm the change.
-- **Error Feedback:** Uses native `Toast` or `Alert` for slot conflicts.
+- **Slot Selection:** Manual fetching via "Check Availability" button - slots are NOT automatically fetched when date is selected.
+- **Date Selection:** Starts with no date selected (null) - user must explicitly select a date.
+- **Check Availability Button:** Disabled until a date is selected. When clicked, fetches available slots and displays API messages if available.
+- **API Message Display:** Shows messages from API response (e.g., "No working hours for this day") when slots array is empty.
+- **Error Handling:** Displays API error messages (e.g., "Only confirmed appointments can be rescheduled") in a red error box above the footer when reschedule fails.
+- **Confirmation Alert:** Native `Alert.alert` to confirm successful reschedule.

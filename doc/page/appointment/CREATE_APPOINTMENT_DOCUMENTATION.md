@@ -32,20 +32,38 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ## Context and State Management
 - **Local State:**
   - `activeTab`: 'staff' | 'services' | 'slots' | 'summary'.
-  - `selectedStaff`: User object or ID.
+  - `selectedStaff`: User object or null.
   - `selectedServices`: Array of service IDs.
-  - `selectedDate`: Date object.
-  - `selectedSlot`: Slot object (startTime, endTime).
+  - `selectedDate`: Date object or null (starts as null, no auto-selection).
+  - `selectedSlot`: Slot object (startTime, endTime) or null.
   - `notes`: String.
+  - `showDatePicker`: Boolean for date picker modal visibility.
+  - `shouldFetchSlots`: Boolean to control when slots are fetched (only after clicking "Check Availability").
+  - `errorMessage`: String for tab-specific error messages.
+
+## UI Structure
+- **Header:** Step indicator with numbered circles (1-4), progress bar, and "Step X of 4" in header right
+- **Tabbed Navigation Flow:** Select Staff -> Select Services -> Slot Availability -> Summary
+- **Loading States:** Skeleton loaders with `animate-pulse` for staff (5 cards) and services (5 cards)
+- **Summary Cards:** Separate cards for each selection (Staff, Services, Date/Time, Price) with edit icons that navigate back to respective tabs
+- **Error Display:** Tab-specific error messages displayed in red box below header, only shown when clicking "Next" without selection
+
+## Tabbed Navigation Flow
+The appointment creation follows a 4-step process:
+1. **Staff Selection:** User selects a professional, services are auto-selected but user stays on tab
+2. **Service Selection:** User can modify selected services, must click "Next" to proceed
+3. **Slot Selection:** User selects date, clicks "Check Availability", then selects a time slot
+4. **Summary:** Review all selections with edit capability, then book appointment
 
 ## Planned Layout
 ```
 ┌────────────────────────────────────────────┐
-│ < Back        Create Appointment           │
+│ < Back        Create Appointment  Step 1/4│
 ├────────────────────────────────────────────┤
-│  [ Staff ] [ Services ] [ Slots ] [ Sum ]  │ (Tab Bar)
+│  [1]  [2]  [3]  [4]                        │ (Step Indicators)
+│  Staff Service Slots Summary               │
+│  ────────────────────────                  │ (Progress Bar)
 ├────────────────────────────────────────────┤
-│                                            │
 │                                            │
 │             TAB CONTENT AREA               │
 │        (Scrollable form elements)          │
@@ -66,15 +84,22 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 │ ┌────────────────────────────────────────┐ │
 │ │ (Avatar)  Jane Smith                   │ │
 │ │ Roles: Senior Stylist                  │ │
-│ │ Services: Haircut, Coloring, Styling   │ │
-│ │ [ Select ]                             │ │
+│ │ Services Provided:                     │ │
+│ │ • Haircut                              │ │
+│ │ • Coloring                             │ │
+│ │ • Styling                              │ │
+│ │ [ ✓ Selected ]                         │ │
 │ └────────────────────────────────────────┘ │
 │ ┌────────────────────────────────────────┐ │
 │ │ (Avatar)  John Doe                     │ │
 │ │ Roles: Barber                          │ │
-│ │ Services: Beard Trim, Shave            │ │
-│ │ [ Select ]                             │ │
+│ │ Services Provided:                     │ │
+│ │ • Beard Trim                           │ │
+│ │ • Shave                                │ │
 │ └────────────────────────────────────────┘ │
+│                                            │
+│ [Loading: 5 skeleton cards with animate-  │
+│  pulse while fetching staff]               │
 └────────────────────────────────────────────┘
 ```
 
@@ -83,10 +108,13 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ┌────────────────────────────────────────────┐
 │ ✂️ Select Services                          │
 ├────────────────────────────────────────────┤
-│ 🔘 Haircut (Autoselected)                  │
-│ 🔘 Coloring (Autoselected)                 │
-│ ⚪ Massage (Disabled - Not offered by Jane)│
-│ ⚪ Shave (Disabled - Not offered by Jane)  │
+│ [Loading: 5 skeleton cards with animate-  │
+│  pulse while fetching services]            │
+│                                            │
+│ ☑ Haircut (Autoselected)                  │
+│ ☑ Coloring (Autoselected)                 │
+│ ☐ Massage (Disabled - Not offered by Jane) │
+│ ☐ Shave (Disabled - Not offered by Jane)  │
 ├────────────────────────────────────────────┤
 │ Total Duration: 90 mins                    │
 │ Total Price: KES 2,500                     │
@@ -98,9 +126,15 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ┌────────────────────────────────────────────┐
 │ 📅 Select Date & Time                      │
 ├────────────────────────────────────────────┤
-│  Date: [ 2025-02-25 ]  (Picker Trigger)    │
+│  Date: [ Select a date ]  (Picker Trigger) │
+│                                            │
+│  [ Check Availability ] (Disabled until   │
+│                          date selected)    │
 ├────────────────────────────────────────────┤
+│ (Slots only shown after clicking button)   │
+│                                            │
 │ Available Slots for Jane Smith:            │
+│ [Message: "No working hours for this day"] │
 │ ┌─────────┐ ┌─────────┐ ┌─────────┐        │
 │ │ 09:00 AM│ │ 10:30 AM│ │ 01:00 PM│        │
 │ └─────────┘ └─────────┘ └─────────┘        │
@@ -112,25 +146,42 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ┌────────────────────────────────────────────┐
 │ 📋 Review Appointment                      │
 ├────────────────────────────────────────────┤
-│ Staff: Jane Smith                          │
-│ Services: Haircut, Coloring                │
-│ Date: Feb 25, 2025                         │
-│ Time: 09:00 AM - 10:30 AM                  │
-├────────────────────────────────────────────┤
+│ ┌────────────────────────────────────────┐ │
+│ │ 👤 Staff                    [Edit]      │ │
+│ │ (Avatar) Jane Smith                    │ │
+│ │ Senior Stylist                          │ │
+│ └────────────────────────────────────────┘ │
+│ ┌────────────────────────────────────────┐ │
+│ │ ✂️ Services                 [Edit]      │ │
+│ │ 1. Haircut - KES 1,500                 │ │
+│ │ 2. Coloring - KES 1,000                │ │
+│ └────────────────────────────────────────┘ │
+│ ┌────────────────────────────────────────┐ │
+│ │ ⏰ Date & Time              [Edit]      │ │
+│ │ Date: February 25, 2025                │ │
+│ │ Start: 9:00 AM                         │ │
+│ │ End: 10:30 AM                          │ │
+│ └────────────────────────────────────────┘ │
+│ ┌────────────────────────────────────────┐ │
+│ │ 💰 Price Summary                       │ │
+│ │ Total Duration: 90 mins                │ │
+│ │ Total Price: KES 2,500                 │ │
+│ └────────────────────────────────────────┘ │
 │ Notes: [ Please use organic products... ]  │
 ├────────────────────────────────────────────┤
-│ [ CONFIRM & BOOK ]                         │
+│ [ BOOK ]                                   │
 └────────────────────────────────────────────┘
 ```
 
 ## Functions Involved
 
 ### `handleConfirmDate(date)`
-Updates `selectedDate` and resets the selected slot.
+Updates `selectedDate` and resets the selected slot and fetch flag. Does NOT automatically fetch slots.
 ```tsx
 const handleConfirmDate = (date: Date) => {
   setSelectedDate(date);
   setSelectedSlot(null);
+  setShouldFetchSlots(false); // Reset fetch flag when date changes
   setShowDatePicker(false);
 };
 ```
@@ -144,14 +195,17 @@ const hideDatePicker = () => {
 ```
 
 ### `handleStaffSelect(staff)`
-Updates `selectedStaff` and automatically populates `selectedServices` with all services provided by that staff member.
+Updates `selectedStaff` and automatically populates `selectedServices` with all services provided by that staff member. Note: Does NOT automatically navigate to next tab - user must click "Next" button.
 ```tsx
 const handleStaffSelect = (staff) => {
   setSelectedStaff(staff);
   // Autoselect services provided by this staff
   const staffServiceIds = staff.services.map(s => s._id);
   setSelectedServices(staffServiceIds);
-  setActiveTab('services');
+  setSelectedSlot(null); // Reset slot if staff changes
+  setSelectedDate(null); // Reset date
+  setShouldFetchSlots(false); // Reset fetch flag
+  // User must click "Next" to proceed
 };
 ```
 
@@ -178,14 +232,28 @@ const totals = useMemo(() => {
 }, [selectedServices]);
 ```
 
-### `fetchAvailability()`
-The query key for `useGetSlots` ensures availability is updated when any core dependency changes.
+### `handleCheckAvailability()`
+Manually triggers slot fetching when user clicks "Check Availability" button. Slots are NOT automatically fetched when date is selected.
 ```tsx
-const { data: slots } = useGetSlots({
-  staffId: selectedStaff?._id,
-  serviceIds: selectedServices, // Array passed to query
-  date: format(selectedDate, 'yyyy-MM-dd')
+const handleCheckAvailability = () => {
+  if (!selectedDate) {
+    setErrorMessage('Please select a date first.');
+    return;
+  }
+  setShouldFetchSlots(true);
+  setSelectedSlot(null); // Reset selected slot
+  refetchSlots();
+};
+```
+
+### `fetchAvailability()`
+The query for `useGetSlots` only runs when `shouldFetchSlots` is true and all required params are available. Slots are NOT automatically fetched on date selection.
+```tsx
+const { data: slotsData, isLoading: isLoadingSlots, refetch: refetchSlots } = useGetSlots(slotsParams, {
+  enabled: shouldFetchSlots && !!slotsParams,
 });
+const slots = slotsData?.slots || [];
+// API messages are displayed: slotsData?.message
 ```
 
 ### `handleBooking()`
