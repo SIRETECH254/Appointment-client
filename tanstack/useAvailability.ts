@@ -18,7 +18,11 @@ export const useGetSlots = (
         throw new Error('Slots params are required');
       }
       const response = await availabilityAPI.getSlots(params);
-      return response.data.data;
+      // Include message from response.data.message if available
+      return {
+        ...response.data.data,
+        message: response.data.message,
+      };
     },
     enabled: !!params && (options?.enabled !== false),
     staleTime: DEFAULT_STALE_TIME,

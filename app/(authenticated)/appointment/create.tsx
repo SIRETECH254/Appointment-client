@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { DatePickerModal } from 'react-native-paper-dates';
 import { useRouter, Stack } from 'expo-router';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCreateAppointment } from '@/tanstack/useAppointments';
 import { useGetAllServices } from '@/tanstack/useServices';
 import { useGetAllStaff } from '@/tanstack/useUsers';
@@ -23,6 +24,13 @@ import type { User, IService, ITimeSlot } from '@/types/api.types';
 // Define the tabs for the booking flow
 type BookingTab = 'staff' | 'services' | 'slots' | 'summary';
 
+const TABS: { key: BookingTab; label: string; step: number }[] = [
+  { key: 'staff', label: 'Staff', step: 1 },
+  { key: 'services', label: 'Service', step: 2 },
+  { key: 'slots', label: 'Slots', step: 3 },
+  { key: 'summary', label: 'Summary', step: 4 },
+];
+
 /**
  * Appointment Create Screen
  * Implements a tabbed interface for booking an appointment.
@@ -30,25 +38,36 @@ type BookingTab = 'staff' | 'services' | 'slots' | 'summary';
  */
 const AppointmentCreateScreen = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<BookingTab>('staff');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   
   // Selection State
   const [selectedStaff, setSelectedStaff] = useState<User | null>(null);
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<ITimeSlot | null>(null);
   const [notes, setNotes] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [shouldFetchSlots, setShouldFetchSlots] = useState(false);
 
   // Queries
   const { data: staffList, isLoading: isLoadingStaff } = useGetAllStaff();
 
   const { data: allServicesData, isLoading: isLoadingServices } = useGetAllServices({ status: 'active' });
-  const allServices: IService[] = useMemo(() => allServicesData?.services || [], [allServicesData]);
+  // Standardized response: allServicesData is now directly the services array
+  const allServices: IService[] = useMemo(() => {
+    if (!allServicesData) return [];
+    // Handle both array and object with services property for backward compatibility
+    if (Array.isArray(allServicesData)) {
+      return allServicesData;
+    }
+    return (allServicesData as any).services || [];
+  }, [allServicesData]);
 
-  // Slots Query - only runs when staff, services, and date are selected
+  // Slots Query - only runs when manually triggered via button
   const slotsParams = useMemo(() => {
-    if (!selectedStaff?._id || selectedServices.length === 0) return null;
+    if (!selectedStaff?._id || selectedServices.length === 0 || !selectedDate) return null;
     return {
       staffId: selectedStaff._id,
       serviceId: selectedServices,
@@ -56,13 +75,108 @@ const AppointmentCreateScreen = () => {
     };
   }, [selectedStaff, selectedServices, selectedDate]);
 
-  const { data: slotsData, isLoading: isLoadingSlots } = useGetSlots(slotsParams, {
-    enabled: activeTab === 'slots' && !!slotsParams,
+  const { data: slotsData, isLoading: isLoadingSlots, refetch: refetchSlots } = useGetSlots(slotsParams, {
+    enabled: shouldFetchSlots && !!slotsParams,
   });
   const slots: ITimeSlot[] = slotsData?.slots || [];
 
   // Mutation
   const createMutation = useCreateAppointment();
+
+  // Get current step number
+  const currentStep = useMemo(() => {
+    return TABS.find(tab => tab.key === activeTab)?.step || 1;
+  }, [activeTab]);
+
+  /**
+   * Validate current tab and return error message if invalid
+   */
+  const validateCurrentTab = useCallback((): string | null => {
+    if (activeTab === 'staff' && !selectedStaff) {
+      return 'Please select a staff member.';
+    }
+    
+    if (activeTab === 'services' && selectedServices.length === 0) {
+      return 'Please select at least one service.';
+    }
+    
+    if (activeTab === 'slots') {
+      if (!selectedDate) {
+        return 'Please select a date.';
+      }
+      if (!shouldFetchSlots) {
+        return 'Please click "Check Availability" to see available slots.';
+      }
+      if (!selectedSlot) {
+        return 'Please select a time slot.';
+      }
+    }
+    
+    if (activeTab === 'summary') {
+      if (!selectedStaff) {
+        return 'Please select a staff member.';
+      }
+      if (selectedServices.length === 0) {
+        return 'Please select at least one service.';
+      }
+      if (!selectedSlot) {
+        return 'Please select a time slot.';
+      }
+    }
+    
+    return null;
+  }, [activeTab, selectedStaff, selectedServices, selectedDate, shouldFetchSlots, selectedSlot]);
+
+  /**
+   * Validate tab navigation (for step indicator clicks - doesn't show errors)
+   */
+  const validateTabNavigation = useCallback((targetTab: BookingTab): boolean => {
+    // Don't set error messages here - only prevent navigation
+    // Errors should only show when clicking "Next" button
+    
+    if (targetTab === 'services' && !selectedStaff) {
+      return false;
+    }
+    
+    if (targetTab === 'slots' && (!selectedStaff || selectedServices.length === 0)) {
+      return false;
+    }
+    
+    if (targetTab === 'summary' && (!selectedStaff || selectedServices.length === 0 || !selectedSlot)) {
+      return false;
+    }
+    
+    return true;
+  }, [selectedStaff, selectedServices, selectedSlot]);
+
+  /**
+   * Handle tab change with validation (for step indicator clicks)
+   */
+  const handleTabChange = useCallback((tab: BookingTab) => {
+    // Only allow navigation if validation passes
+    // Don't show errors here - errors only show when clicking "Next"
+    if (!validateTabNavigation(tab)) {
+      return;
+    }
+    setActiveTab(tab);
+    setErrorMessage(''); // Clear any existing errors when navigating
+  }, [validateTabNavigation]);
+
+  /**
+   * Clear error when selection is made on current tab
+   */
+  useEffect(() => {
+    // Only clear error if there's an error message and a valid selection is made
+    if (errorMessage) {
+      if (activeTab === 'staff' && selectedStaff) {
+        setErrorMessage('');
+      } else if (activeTab === 'services' && selectedServices.length > 0) {
+        setErrorMessage('');
+      } else if (activeTab === 'slots' && selectedSlot) {
+        setErrorMessage('');
+      }
+    }
+  }, [activeTab, selectedStaff, selectedServices, selectedSlot, errorMessage]);
 
   /**
    * Tab 1: Handle Staff Selection
@@ -74,7 +188,10 @@ const AppointmentCreateScreen = () => {
     const staffServiceIds = ((staff as any).services || []).map((s: any) => typeof s === 'string' ? s : s._id);
     setSelectedServices(staffServiceIds);
     setSelectedSlot(null); // Reset slot if staff changes
-    setActiveTab('services');
+    setSelectedDate(null); // Reset date
+    setShouldFetchSlots(false); // Reset fetch flag
+    // Don't automatically navigate - user must click "Next"
+    setErrorMessage('');
   }, []);
 
   /**
@@ -87,14 +204,17 @@ const AppointmentCreateScreen = () => {
         : [...prev, serviceId]
     );
     setSelectedSlot(null); // Reset slot if services change
+    setSelectedDate(null); // Reset date
+    setShouldFetchSlots(false); // Reset fetch flag
   }, []);
 
   /**
    * Check if a service is disabled (if it's not offered by the selected staff)
    */
   const isServiceDisabled = useCallback((serviceId: string) => {
-    if (!selectedStaff?.services) return false;
-    const staffServiceIds = selectedStaff.services.map((s: any) => typeof s === 'string' ? s : s._id);
+    if (!selectedStaff) return false;
+    const staffServices = (selectedStaff as any).services || [];
+    const staffServiceIds = staffServices.map((s: any) => typeof s === 'string' ? s : s._id);
     return !staffServiceIds.includes(serviceId);
   }, [selectedStaff]);
 
@@ -117,12 +237,26 @@ const AppointmentCreateScreen = () => {
   const handleConfirmDate = useCallback((params: any) => {
     setSelectedDate(params.date);
     setSelectedSlot(null);
+    setShouldFetchSlots(false); // Reset fetch flag when date changes
     setShowDatePicker(false);
   }, []);
 
   const hideDatePicker = useCallback(() => {
     setShowDatePicker(false);
   }, []);
+
+  /**
+   * Handle Check Availability button click
+   */
+  const handleCheckAvailability = useCallback(() => {
+    if (!selectedDate) {
+      setErrorMessage('Please select a date first.');
+      return;
+    }
+    setShouldFetchSlots(true);
+    setSelectedSlot(null); // Reset selected slot
+    refetchSlots();
+  }, [selectedDate, refetchSlots]);
 
   /**
    * Final Submission
@@ -148,33 +282,115 @@ const AppointmentCreateScreen = () => {
   };
 
   /**
-   * Render Tab Headers
+   * Render Step Indicator Header
    */
-  const renderTabHeaders = () => (
-    <View className="flex-row bg-white border-b border-gray-100">
-      {(['staff', 'services', 'slots', 'summary'] as BookingTab[]).map((tab) => (
-        <TouchableOpacity
-          key={tab}
-          onPress={() => {
-            // Basic validation for manual tab switching
-            if (tab === 'services' && !selectedStaff) return;
-            if (tab === 'slots' && (selectedServices.length === 0 || !selectedStaff)) return;
-            if (tab === 'summary' && !selectedSlot) return;
-            setActiveTab(tab);
-          }}
-          className={`flex-1 py-3 items-center border-b-2 ${
-            activeTab === tab ? 'border-brand-primary' : 'border-transparent'
-          }`}
-        >
-          <Text className={`text-[10px] uppercase font-bold ${
-            activeTab === tab ? 'text-brand-primary' : 'text-gray-400'
-          }`}>
-            {tab}
-          </Text>
-        </TouchableOpacity>
-      ))}
-    </View>
-  );
+  const renderStepHeader = () => {
+    const progress = (currentStep / TABS.length) * 100;
+    
+    return (
+      <View className="bg-white border-b border-gray-100 space-y-4 p-3">
+
+        <View className="flex-row items-center  justify-between">
+
+          {/* current step & lable */}
+          <View className="flex-row items-center gap-x-2">
+            
+            <View className="h-5 w-5 rounded-full items-center justify-center bg-brand-primary text-white text-xs font-bold">{TABS.find(tab => tab.key === activeTab)?.step}</View>
+
+            <Text className="text-sm font-semibold text-brand-primary">{TABS.find(tab => tab.key === activeTab)?.label}</Text>
+
+          </View>
+       
+          {/* Step numbers and labels */}
+          <View className="flex-row items-center gap-x-2 md:gap-x-4 lg:gap-x-6">
+            {TABS.map((tab) => {
+              const isActive = tab.key === activeTab;
+              const isCompleted = currentStep > tab.step;
+              
+              return (
+                <TouchableOpacity
+                  key={tab.key}
+                  onPress={() => handleTabChange(tab.key)}
+                  className="flex-1 items-center"
+                  disabled={!validateTabNavigation(tab.key)}
+                >
+                  <View className="items-center">
+
+                    {/* Step number circle */}
+                    <View className={`h-6 w-6 rounded-full items-center justify-center ${
+                      isActive 
+                        ? 'bg-brand-primary' 
+                        : isCompleted 
+                          ? 'bg-brand-primary/30' 
+                          : 'bg-gray-200'
+                    }`}>
+                      {isCompleted ? (
+                        <MaterialIcons name="check" size={20} color="white" />
+                      ) : (
+                        <Text className={`text-base font-bold ${
+                          isActive ? 'text-white' : 'text-gray-500'
+                        }`}>
+                          {tab.step}
+                        </Text>
+                      )}
+                    </View>
+                    
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+        </View>
+        
+        {/* Progress bar */}
+        <View className="h-2 bg-gray-100 rounded-full">
+          <View 
+            className="h-full bg-brand-primary rounded-full"
+            style={{ width: `${progress}%` }}
+          />
+        </View>
+
+      </View>
+    );
+  };
+
+  /**
+   * Render Staff Card Skeleton
+   */
+  const renderStaffSkeleton = () => {
+    return Array.from({ length: 5 }).map((_, index) => (
+      <View
+        key={`skeleton-${index}`}
+        className="mb-4 flex-row items-center p-4 rounded-2xl bg-white border border-gray-100 shadow-sm animate-pulse"
+      >
+        <View className="h-16 w-16 rounded-full bg-gray-200" />
+        <View className="ml-4 flex-1">
+          <View className="h-5 w-32 rounded bg-gray-200 mb-2" />
+          <View className="h-4 w-24 rounded bg-gray-200 mb-2" />
+          <View className="h-3 w-48 rounded bg-gray-200" />
+        </View>
+      </View>
+    ));
+  };
+
+  /**
+   * Render Service Card Skeleton
+   */
+  const renderServiceSkeleton = () => {
+    return Array.from({ length: 5 }).map((_, index) => (
+      <View
+        key={`skeleton-${index}`}
+        className="mb-3 flex-row items-center p-4 rounded-2xl bg-white border border-gray-100 shadow-sm animate-pulse"
+      >
+        <View className="flex-1">
+          <View className="h-5 w-40 rounded bg-gray-200 mb-2" />
+          <View className="h-4 w-32 rounded bg-gray-200" />
+        </View>
+        <View className="h-6 w-6 rounded bg-gray-200" />
+      </View>
+    ));
+  };
 
   return (
     <View className="flex-1 bg-gray-50">
@@ -182,10 +398,19 @@ const AppointmentCreateScreen = () => {
         options={{
           title: 'Create Appointment',
           headerShown: true,
+          headerRight: () => (
+            <View className="mr-4">
+              <Text className="text-sm font-semibold text-brand-primary">
+                Step {currentStep} of {TABS.length}
+              </Text>
+            </View>
+          ),
         }} 
       />
       
-      {renderTabHeaders()}
+      {renderStepHeader()}
+
+
 
       <ScrollView className="flex-1">
         {/* Tab 1: Staff Selection */}
@@ -193,35 +418,52 @@ const AppointmentCreateScreen = () => {
           <View className="p-4">
             <Text className="text-xl font-bold text-gray-900 mb-4">Select Professional</Text>
             {isLoadingStaff ? (
-              <ActivityIndicator color="#D4AF37" />
+              renderStaffSkeleton()
             ) : (
-              staffList?.map((staff: any) => (
-                <TouchableOpacity
-                  key={staff._id}
-                  onPress={() => handleStaffSelect(staff)}
-                  className={`mb-4 flex-row items-center p-4 rounded-2xl bg-white border ${
-                    selectedStaff?._id === staff._id ? 'border-brand-primary' : 'border-gray-100'
-                  } shadow-sm`}
-                >
-                  <View className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden items-center justify-center">
-                    {staff.avatar ? (
-                      <Image source={{ uri: staff.avatar }} className="h-full w-full" />
-                    ) : (
-                      <MaterialIcons name="person" size={40} color="white" />
+              staffList?.map((staff: any) => {
+                const staffServices = ((staff as any).services || []).map((s: any) => 
+                  typeof s === 'string' ? s : s.name || s
+                );
+                
+                return (
+                  <TouchableOpacity
+                    key={staff._id}
+                    onPress={() => handleStaffSelect(staff)}
+                    className={`mb-4 flex-row items-center p-4 rounded-2xl bg-white border ${
+                      selectedStaff?._id === staff._id ? 'border-brand-primary' : 'border-gray-100'
+                    } shadow-sm`}
+                  >
+                    <View className="h-16 w-16 rounded-full bg-gray-200 overflow-hidden items-center justify-center">
+                      {staff.avatar ? (
+                        <Image source={{ uri: staff.avatar }} className="h-full w-full" />
+                      ) : (
+                        <MaterialIcons name="person" size={40} color="#9CA3AF" />
+                      )}
+                    </View>
+                    <View className="ml-4 flex-1">
+                      <Text className="text-lg font-bold text-gray-900">{staff.firstName} {staff.lastName}</Text>
+                      <Text className="text-sm text-gray-500">{staff.role}</Text>
+                      
+                      {/* Services list */}
+                      {staffServices.length > 0 && (
+                        <View className="mt-2">
+                          <Text className="text-xs font-semibold text-gray-600 mb-1">Services Provided:</Text>
+                          <View className="ml-2">
+                            {staffServices.map((serviceName: string, idx: number) => (
+                              <View key={idx} className="flex-row items-center mb-1">
+                                <Text className="text-xs text-gray-500">• {serviceName}</Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                    {selectedStaff?._id === staff._id && (
+                      <MaterialIcons name="check-circle" size={24} color="#D4AF37" />
                     )}
-                  </View>
-                  <View className="ml-4 flex-1">
-                    <Text className="text-lg font-bold text-gray-900">{staff.firstName} {staff.lastName}</Text>
-                    <Text className="text-sm text-gray-500">{staff.role}</Text>
-                    <Text className="mt-1 text-xs text-brand-primary font-medium" numberOfLines={1}>
-                      Provides: {staff.services?.map((s: any) => typeof s === 'string' ? s : s.name).join(', ')}
-                    </Text>
-                  </View>
-                  {selectedStaff?._id === staff._id && (
-                    <MaterialIcons name="check-circle" size={24} color="#D4AF37" />
-                  )}
-                </TouchableOpacity>
-              ))
+                  </TouchableOpacity>
+                );
+              })
             )}
           </View>
         )}
@@ -231,7 +473,7 @@ const AppointmentCreateScreen = () => {
           <View className="p-4">
             <Text className="text-xl font-bold text-gray-900 mb-4">Select Services</Text>
             {isLoadingServices ? (
-              <ActivityIndicator color="#D4AF37" />
+              renderServiceSkeleton()
             ) : (
               allServices.map((service: any) => {
                 const isDisabled = isServiceDisabled(service._id);
@@ -284,7 +526,9 @@ const AppointmentCreateScreen = () => {
             >
               <View className="flex-row items-center">
                 <MaterialIcons name="calendar-today" size={20} color="#D4AF37" />
-                <Text className="ml-3 font-bold text-gray-900">{format(selectedDate, 'PPPP')}</Text>
+                <Text className="ml-3 font-bold text-gray-900">
+                  {selectedDate ? format(selectedDate, 'PPPP') : 'Select a date'}
+                </Text>
               </View>
               <Text className="text-brand-primary font-bold">Change</Text>
             </TouchableOpacity>
@@ -294,53 +538,82 @@ const AppointmentCreateScreen = () => {
               mode="single"
               visible={showDatePicker}
               onDismiss={hideDatePicker}
-              date={selectedDate}
+              date={selectedDate || undefined}
               onConfirm={handleConfirmDate}
               validRange={{
                 startDate: new Date(),
               }}
             />
 
-            <View className="mt-8">
-              <Text className="text-base font-bold text-gray-700 mb-4">Available Slots for {selectedStaff?.firstName}</Text>
-              
-              {slotsData?.message && (
-                <View className="mb-4 p-3 bg-brand-tint border border-brand-primary/20 rounded-xl">
-                  <Text className="text-xs text-brand-primary font-medium text-center">
-                    {slotsData.message}
-                  </Text>
-                </View>
-              )}
+            {/* Check Availability Button */}
+            <TouchableOpacity
+              onPress={handleCheckAvailability}
+              disabled={!selectedDate || isLoadingSlots}
+              className={`mt-4 p-4 rounded-2xl shadow-sm  ${
+                selectedDate && !isLoadingSlots
+                  ? 'bg-brand-tint' 
+                  : 'bg-gray-300'
+              }`}
+            >
+              <Text className={`text-center font-bold ${
+                selectedDate && !isLoadingSlots ? 'text-gray-900' : 'text-gray-500'
+              }`}>
+                {isLoadingSlots ? 'Checking...' : 'Check Availability'}
+              </Text>
+            </TouchableOpacity>
 
-              {isLoadingSlots ? (
-                <ActivityIndicator color="#D4AF37" />
-              ) : slots.length > 0 ? (
-                <View className="flex-row flex-wrap gap-3">
-                  {slots.map((slot: any, index: number) => (
-                    <TouchableOpacity
-                      key={index}
-                      onPress={() => setSelectedSlot(slot)}
-                      className={`px-4 py-3 rounded-xl border ${
-                        selectedSlot?.startTime === slot.startTime 
-                          ? 'bg-brand-primary border-brand-primary' 
-                          : 'bg-white border-gray-200'
-                      }`}
-                    >
-                      <Text className={`font-bold ${
-                        selectedSlot?.startTime === slot.startTime ? 'text-white' : 'text-gray-700'
-                      }`}>
-                        {format(new Date(slot.startTime), 'p')}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              ) : (
-                <View className="items-center py-10">
-                  <MaterialIcons name="event-busy" size={48} color="#D1D5DB" />
-                  <Text className="mt-2 text-gray-400">No available slots for this date</Text>
-                </View>
-              )}
-            </View>
+            {/* Slots Display */}
+            {shouldFetchSlots && (
+              <View className="mt-8">
+                <Text className="text-base font-bold text-gray-700 mb-4">Available Slots for {selectedStaff?.firstName}</Text>
+                
+                {isLoadingSlots ? (
+                  <ActivityIndicator color="#D4AF37" size="large" />
+                ) : (
+                  <>
+                    {/* Show message if available (even if slots array is empty) */}
+                    {slotsData?.message && (
+                      <View className="mb-4 p-3 bg-brand-tint border border-brand-primary/20 rounded-xl">
+                        <Text className="text-sm text-brand-primary font-medium text-center">
+                          {slotsData.message}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Show slots if available */}
+                    {slots.length > 0 ? (
+                      <View className="flex-row flex-wrap gap-3">
+                        {slots.map((slot: any, index: number) => (
+                          <TouchableOpacity
+                            key={index}
+                            onPress={() => setSelectedSlot(slot)}
+                            className={`px-4 py-3 rounded-xl border ${
+                              selectedSlot?.startTime === slot.startTime 
+                                ? 'bg-brand-tint border-brand-primary' 
+                                : 'bg-white border-gray-200'
+                            }`}
+                          >
+                            <Text className={`font-bold ${
+                              selectedSlot?.startTime === slot.startTime ? 'text-gray-800' : 'text-gray-700'
+                            }`}>
+                              {format(new Date(slot.startTime), 'p')}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    ) : (
+                      /* Show empty state only if no message was provided */
+                      !slotsData?.message && (
+                        <View className="items-center py-10">
+                          <MaterialIcons name="event-busy" size={48} color="#D1D5DB" />
+                          <Text className="mt-2 text-gray-400">No available slots for this date</Text>
+                        </View>
+                      )
+                    )}
+                  </>
+                )}
+              </View>
+            )}
           </View>
         )}
 
@@ -349,46 +622,122 @@ const AppointmentCreateScreen = () => {
           <View className="p-4">
             <Text className="text-xl font-bold text-gray-900 mb-4">Review Appointment</Text>
             
-            <View className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-6">
-              <View className="flex-row items-center mb-4">
+            {/* Staff Card */}
+            <View className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-4">
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center">
+                  <MaterialIcons name="person" size={20} color="#D4AF37" />
+                  <Text className="text-base font-bold text-gray-900 ml-2">Staff</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleTabChange('staff')}
+                  className="p-2"
+                >
+                  <MaterialIcons name="edit" size={20} color="#D4AF37" />
+                </TouchableOpacity>
+              </View>
+              <View className="flex-row items-center">
                 <Image 
                   source={{ uri: selectedStaff?.avatar || 'https://via.placeholder.com/150' }} 
                   className="h-12 w-12 rounded-full" 
                 />
-                <View className="ml-3">
-                  <Text className="text-base font-bold text-gray-900">{selectedStaff?.firstName} {selectedStaff?.lastName}</Text>
-                  <Text className="text-xs text-gray-500">Professional Staff</Text>
+                <View className="ml-3 flex-1">
+                  <Text className="text-base font-bold text-gray-900">
+                    {selectedStaff?.firstName} {selectedStaff?.lastName}
+                  </Text>
+                  <View className="flex-row items-center mt-1">
+                    <MaterialIcons name="work" size={14} color="#9CA3AF" />
+                    <Text className="text-xs text-gray-500 ml-1">{selectedStaff?.role}</Text>
+                  </View>
                 </View>
               </View>
+            </View>
 
-              <View className="space-y-3">
-                <View className="flex-row items-start">
-                  <MaterialIcons name="content-cut" size={18} color="#9CA3AF" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-sm font-bold text-gray-900">Services</Text>
-                    <Text className="text-sm text-gray-600">
-                      {allServices.filter((s: any) => selectedServices.includes(s._id)).map((s: any) => s.name).join(', ')}
+            {/* Services Card */}
+            <View className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-4">
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center">
+                  <MaterialIcons name="content-cut" size={20} color="#D4AF37" />
+                  <Text className="text-base font-bold text-gray-900 ml-2">Services</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => handleTabChange('services')}
+                  className="p-2"
+                >
+                  <MaterialIcons name="edit" size={20} color="#D4AF37" />
+                </TouchableOpacity>
+              </View>
+              <View className="flex-1">
+                {allServices
+                  .filter((s: any) => selectedServices.includes(s._id))
+                  .map((service: any, index: number) => (
+                    <View key={service._id} className="flex-row items-center mb-2">
+                      <MaterialIcons name="spa" size={16} color="#9CA3AF" />
+                      <Text className="text-sm text-gray-600 ml-2 flex-1">
+                        {index + 1}. {service.name} - {formatCurrency(service.fullPrice)}
+                      </Text>
+                    </View>
+                  ))}
+              </View>
+            </View>
+
+            {/* Date & Time Card */}
+            {selectedDate && selectedSlot && (
+              <View className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-4">
+                <View className="flex-row items-center justify-between mb-3">
+                  <View className="flex-row items-center">
+                    <MaterialIcons name="access-time" size={20} color="#D4AF37" />
+                    <Text className="text-base font-bold text-gray-900 ml-2">Date & Time</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => handleTabChange('slots')}
+                    className="p-2"
+                  >
+                    <MaterialIcons name="edit" size={20} color="#D4AF37" />
+                  </TouchableOpacity>
+                </View>
+                <View className="flex-1">
+                  <View className="flex-row items-center mb-2">
+                    <MaterialIcons name="calendar-today" size={16} color="#9CA3AF" />
+                    <Text className="text-sm text-gray-600 ml-2">
+                      Date: {format(selectedDate, 'MMMM d, yyyy')}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center mb-2">
+                    <MaterialIcons name="schedule" size={16} color="#9CA3AF" />
+                    <Text className="text-sm text-gray-600 ml-2">
+                      Start: {format(new Date(selectedSlot.startTime), 'p')}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center">
+                    <MaterialIcons name="schedule" size={16} color="#9CA3AF" />
+                    <Text className="text-sm text-gray-600 ml-2">
+                      End: {format(new Date(selectedSlot.endTime), 'p')}
                     </Text>
                   </View>
                 </View>
+              </View>
+            )}
 
-                <View className="flex-row items-start mt-3">
-                  <MaterialIcons name="access-time" size={18} color="#9CA3AF" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-sm font-bold text-gray-900">Date & Time</Text>
-                    <Text className="text-sm text-gray-600">
-                      {format(selectedDate, 'MMMM d, yyyy')} at {selectedSlot ? format(new Date(selectedSlot.startTime), 'p') : ''}
-                    </Text>
-                  </View>
+            {/* Price Summary Card */}
+            <View className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-6">
+              <View className="flex-row items-center mb-3">
+                <MaterialIcons name="payments" size={20} color="#D4AF37" />
+                <Text className="text-base font-bold text-gray-900 ml-2">Price Summary</Text>
+              </View>
+              <View className="flex-row items-center justify-between mb-2">
+                <View className="flex-row items-center">
+                  <MaterialIcons name="timer" size={16} color="#9CA3AF" />
+                  <Text className="text-sm text-gray-600 ml-2">Total Duration:</Text>
                 </View>
-
-                <View className="flex-row items-start mt-3">
-                  <MaterialIcons name="payments" size={18} color="#9CA3AF" />
-                  <View className="ml-3 flex-1">
-                    <Text className="text-sm font-bold text-gray-900">Price Details</Text>
-                    <Text className="text-sm text-gray-600">Total Price: {formatCurrency(totals.price)}</Text>
-                  </View>
+                <Text className="text-sm font-bold text-gray-900">{totals.duration} mins</Text>
+              </View>
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <MaterialIcons name="attach-money" size={16} color="#9CA3AF" />
+                  <Text className="text-base font-bold text-gray-900 ml-2">Total Price:</Text>
                 </View>
+                <Text className="text-base font-bold text-brand-primary">{formatCurrency(totals.price)}</Text>
               </View>
             </View>
 
@@ -412,6 +761,14 @@ const AppointmentCreateScreen = () => {
             )}
           </View>
         )}
+
+        {/* Error Message */}
+        {errorMessage ? (
+          <View className="mx-4 mt-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+            <Text className="text-sm text-red-700 font-medium">{errorMessage}</Text>
+          </View>
+        ) : null}
+
       </ScrollView>
 
       {/* Navigation Footer */}
@@ -419,9 +776,29 @@ const AppointmentCreateScreen = () => {
         {activeTab !== 'staff' && (
           <TouchableOpacity 
             onPress={() => {
-              if (activeTab === 'services') setActiveTab('staff');
-              if (activeTab === 'slots') setActiveTab('services');
-              if (activeTab === 'summary') setActiveTab('slots');
+              // Clear error when going back to previous tab
+              setErrorMessage('');
+              
+              // Check if previous tab has a selection and clear error if it does
+              if (activeTab === 'services') {
+                // Going back to staff tab - if staff is selected, no error
+                if (selectedStaff) {
+                  setErrorMessage('');
+                }
+                setActiveTab('staff');
+              } else if (activeTab === 'slots') {
+                // Going back to services tab - if services are selected, no error
+                if (selectedServices.length > 0) {
+                  setErrorMessage('');
+                }
+                setActiveTab('services');
+              } else if (activeTab === 'summary') {
+                // Going back to slots tab - if slot is selected, no error
+                if (selectedSlot) {
+                  setErrorMessage('');
+                }
+                setActiveTab('slots');
+              }
             }}
             className="btn-secondary flex-1"
           >
@@ -431,14 +808,22 @@ const AppointmentCreateScreen = () => {
         
         <TouchableOpacity 
           onPress={() => {
+            // Validate current tab and show specific error
+            const error = validateCurrentTab();
+            if (error) {
+              setErrorMessage(error);
+              return;
+            }
+            
+            // Clear error if validation passes
+            setErrorMessage('');
+            
+            // Proceed to next tab
             if (activeTab === 'staff') {
-              if (!selectedStaff) return Alert.alert('Required', 'Please select a staff member.');
               setActiveTab('services');
             } else if (activeTab === 'services') {
-              if (selectedServices.length === 0) return Alert.alert('Required', 'Please select at least one service.');
               setActiveTab('slots');
             } else if (activeTab === 'slots') {
-              if (!selectedSlot) return Alert.alert('Required', 'Please select a time slot.');
               setActiveTab('summary');
             } else if (activeTab === 'summary') {
               handleBooking();
@@ -451,7 +836,7 @@ const AppointmentCreateScreen = () => {
             <ActivityIndicator color="white" />
           ) : (
             <Text className="font-bold text-white">
-              {activeTab === 'summary' ? 'Confirm & Book' : 'Next'}
+              {activeTab === 'summary' ? 'Book' : 'Next'}
             </Text>
           )}
         </TouchableOpacity>
