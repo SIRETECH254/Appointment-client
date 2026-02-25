@@ -31,7 +31,27 @@ const ServicePaymentScreen = () => {
 
   // Queries
   const { data: servicesData, isLoading: isLoadingServices } = useGetAllServices({ status: 'active' });
-  const allServices: IService[] = useMemo(() => servicesData?.services || [], [servicesData]);
+  
+  /**
+   * Extract services array from the response
+   * The API may return { services: IService[] } or IService[] directly
+   * This handles both cases safely
+   */
+  const allServices: IService[] = useMemo(() => {
+    if (!servicesData) return [];
+    
+    // Check if data is an array directly
+    if (Array.isArray(servicesData)) {
+      return servicesData;
+    }
+    
+    // Check if data has a services property
+    if (servicesData && typeof servicesData === 'object' && 'services' in servicesData) {
+      return (servicesData as any).services || [];
+    }
+    
+    return [];
+  }, [servicesData]);
 
   // Mutations
   const initiateMutation = useInitiatePayment();
