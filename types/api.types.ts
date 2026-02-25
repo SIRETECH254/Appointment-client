@@ -119,7 +119,8 @@ export interface ConfirmAppointmentPayload {
 }
 
 export interface RescheduleAppointmentPayload {
-  newStartTime: string; // ISO8601 datetime
+  startTime: string; // ISO8601 datetime
+  endTime: string;   // ISO8601 datetime
   staffId?: string; // Optional: if staff also changes
 }
 

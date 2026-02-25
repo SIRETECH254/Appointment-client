@@ -41,7 +41,7 @@ const AppointmentListScreen = () => {
   // Prepare parameters for the TanStack Query hook
   const params : any = useMemo(() => ({
     search: debouncedSearch || undefined,
-    status: filterStatus === 'all' ? undefined : filterStatus.toLowerCase(),
+    status: filterStatus === 'all' ? undefined : filterStatus.toUpperCase(),
   }), [debouncedSearch, filterStatus]);
 
   // Fetch appointments using the custom TanStack hook

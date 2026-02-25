@@ -87,7 +87,8 @@ const RescheduleAppointmentScreen = () => {
       await rescheduleMutation.mutateAsync({
         appointmentId: id!,
         data: {
-          newStartTime: selectedSlot.startTime,
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
         },
       });
       
