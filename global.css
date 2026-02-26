@@ -246,6 +246,24 @@
   .table-avatar-initials {
     @apply flex h-10 w-10 items-center justify-center rounded-full bg-brand-primary text-sm font-semibold text-white;
   }
+
+  /* Active navigation link styles */
+  .active-navlink {
+    @apply border-b-2 border-brand-primary;
+  }
+
+  .active-navlink-text {
+    @apply text-brand-primary;
+  }
+
+  /* Active sidebar link styles */
+  .active-sidelink {
+    @apply bg-brand-tint border-l-4 border-brand-primary;
+  }
+
+  .active-sidelink-text {
+    @apply text-brand-primary font-semibold;
+  }
 }
 
 @layer utilities {

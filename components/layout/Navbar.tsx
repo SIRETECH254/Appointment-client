@@ -4,6 +4,7 @@ import { useRouter, usePathname } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGetUnreadNotificationCount } from '../../tanstack/useNotifications';
+import { getPublicNavItems, getAuthenticatedNavItems, isRouteActive } from '../../constants/navigation';
 
 type NavbarProps = {
   isSidebarOpen: boolean;
@@ -95,36 +96,36 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
         {/* Center section: navigation links (large screens only) */}
         {isLargeScreen && (
           <View className="hidden flex-1 flex-row justify-center gap-6 lg:flex">
-            <TouchableOpacity
-              onPress={() => router.push('/(public)/')}
-              className={`px-3 py-2 ${pathname === '/(public)/' ? 'border-b-2 border-brand-primary' : ''}`}>
-              <Text className={`font-inter text-sm font-medium ${pathname === '/(public)/' ? 'text-brand-primary' : 'text-slate-600'}`}>
-                Home
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() => router.push('/(public)/services')}
-              className={`px-3 py-2 ${pathname === '/(public)/services' ? 'border-b-2 border-brand-primary' : ''}`}>
-              <Text className={`font-inter text-sm font-medium ${pathname === '/(public)/services' ? 'text-brand-primary' : 'text-slate-600'}`}>
-                Services
-              </Text>
-            </TouchableOpacity>
-            {isAuthenticated && (
-              <TouchableOpacity
-                onPress={handleAppointments}
-                className={`px-3 py-2 ${pathname.startsWith('/(authenticated)/appointment') ? 'border-b-2 border-brand-primary' : ''}`}>
-                <Text className={`font-inter text-sm font-medium ${pathname.startsWith('/(authenticated)/appointment') ? 'text-brand-primary' : 'text-slate-600'}`}>
-                  Appointments
-                </Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              onPress={() => router.push('/(public)/contact')}
-              className={`px-3 py-2 ${pathname === '/(public)/contact' ? 'border-b-2 border-brand-primary' : ''}`}>
-              <Text className={`font-inter text-sm font-medium ${pathname === '/(public)/contact' ? 'text-brand-primary' : 'text-slate-600'}`}>
-                Contact
-              </Text>
-            </TouchableOpacity>
+            {/* Public navigation items */}
+            {getPublicNavItems().map((item) => {
+              const isActive = isRouteActive(pathname, item);
+              return (
+                <TouchableOpacity
+                  key={item.path}
+                  onPress={() => router.push(item.path as any)}
+                  className={`px-3 py-2 ${isActive ? 'active-navlink' : ''}`}>
+                  <Text className={`font-inter text-sm font-medium ${isActive ? 'active-navlink-text' : 'text-slate-600'}`}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+            {/* Authenticated navigation items */}
+            {isAuthenticated && getAuthenticatedNavItems()
+              .filter(item => item.label === 'Appointments') // Only show Appointments in navbar
+              .map((item) => {
+                const isActive = isRouteActive(pathname, item);
+                return (
+                  <TouchableOpacity
+                    key={item.path}
+                    onPress={() => router.push(item.path as any)}
+                    className={`px-3 py-2 ${isActive ? 'active-navlink' : ''}`}>
+                    <Text className={`font-inter text-sm font-medium ${isActive ? 'active-navlink-text' : 'text-slate-600'}`}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
           </View>
         )}
 
@@ -139,8 +140,8 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
                 accessibilityLabel="Notifications">
                 <MaterialIcons name="notifications-none" size={22} color="#374151" />
                 {unreadCount > 0 && (
-                  <View className="absolute -right-1 -top-1 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1">
-                    <Text className="text-[10px] font-semibold text-white">
+                  <View className="absolute -right-1 -top-2 min-w-[20px] items-center justify-center rounded-full bg-red-500 px-1">
+                    <Text className="text-sm font-semibold text-white">
                       {unreadCount > 99 ? '99+' : unreadCount}
                     </Text>
                   </View>
