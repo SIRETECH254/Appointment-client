@@ -2,9 +2,12 @@ export const formatCurrency = (amount: number | string | undefined, currency: st
   const value = typeof amount === 'string' ? parseFloat(amount) : amount;
   if (value === undefined || isNaN(value)) return `${currency} 0.00`;
   
-  return `${currency} ${value.toLocaleString(undefined, {
+  // Use 'en-US' locale to ensure consistent formatting without currency symbols
+  // Only format as number, not as currency, to avoid adding $ or other symbols
+  return `${currency} ${value.toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+    useGrouping: true,
   })}`;
 };
 

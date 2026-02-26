@@ -22,11 +22,11 @@ export default function HomePage() {
   // Dynamically calculate hero section height based on screen width
   const getHeroHeight = () => {
     if (width < 640) { // Small screens
-      return height * 0.5;
+      return height * 0.6;
     } else if (width < 1024) { // Medium screens
       return height * 0.6;
     } else { // Large screens
-      return height * 0.7;
+      return height * 0.8;
     }
   };
 
@@ -44,7 +44,7 @@ export default function HomePage() {
           width: '100%',
           height: heroHeight,
         }}
-        className="relative " // Positioning for absolute overlay
+        className="relative md:flex md:justify-center" // Positioning for absolute overlay
       >
         {/* Dark overlay for better text readability */}
         <View
@@ -59,7 +59,7 @@ export default function HomePage() {
         />
 
         {/* Hero content: Titles, description, and action buttons */}
-        <View className="p-4 sm:p-6 md:p-8 lg:p-12 w-full"> 
+        <View className="p-4 sm:p-6 md:p-8 lg:p-12 w-full "> 
 
           {/* Main title part 1 */}
           <Text className="text-white text-4xl md:text-6xl font-bold mb-5">Precision Meet</Text>
@@ -68,17 +68,17 @@ export default function HomePage() {
           <Text className="text-brand-primary font-bold text-4xl md:text-6xl mb-5 ">Pure Indulgence.</Text>
           
           {/* Hero description text */}
-          <Text className="text-white text-sm md:text-lg font-semibold mb-4 md:mb-6 max-w-2xl">
+          <Text className="text-white text-xs sm:text-sm md:text-lg font-semibold mb-4 md:mb-6 max-w-2xl">
             Your journey to ultimate relaxation and profound rejuvenation begins here. Immerse yourself in a sanctuary of tranquility, where our expert therapists offer a curated selection of bespoke treatments meticulously tailored to your unique needs and desires for a truly transformative well-being experience.
           </Text>
                     
           {/* Buttons Section: Call to action buttons */}
-          <View className="space-y-3 gap-x-3 sm:flex sm:flex-row mt-4 items-center">
+          <View className="space-y-3 gap-x-3  sm:flex-row mt-4 sm:items-center">
 
             {/* "Book your experience" button */}
             <Link href="/appointment/create" asChild>
               <TouchableOpacity className="bg-white py-2 px-4 rounded-full flex-row items-center">
-                <Text className="text-brand-primary font-semibold text-lg">Book your experience <MaterialIcons name='arrow-forward' size={20}/> </Text>
+                <Text className="text-brand-primary border-brand-tint font-semibold text-lg">Book your experience <MaterialIcons name='arrow-forward' size={16}/> </Text>
               </TouchableOpacity>
             </Link>
 
@@ -132,7 +132,7 @@ export default function HomePage() {
         {!isLoading && !error && services && services.length > 0 && (
           <View>
             {/* Grid for displaying service cards */}
-            <View className="grid grid-cols-2 md:grid-cols-3 gap-y-3 gap-x-2">
+            <View className="grid grid-cols-2 md:grid-cols-3 ">
               {services.slice(0, 6).map((service: Service) => (
                 // Individual service card
                 <View key={service._id} className="col-span-1 p-2">
@@ -153,7 +153,7 @@ export default function HomePage() {
       </View>
       
       {/* Call to Action Section: Prompts user to book an appointment */}
-      <View className="bg-brand-primary  p-8 items-center justify-center space-y-4">
+      <View className="bg-brand-soft  p-4 items-center justify-center space-y-4">
         {/* CTA title */}
         <Text className="text-white text-3xl font-bold text-center">Ready for Your Next Experience?</Text>
         {/* CTA description */}
@@ -179,7 +179,7 @@ export default function HomePage() {
       </View>
 
       {/* Newsletter Section */}
-      <View className="bg-brand-tint p-8 items-center justify-center space-y-4">
+      <View className="bg-brand-tint p-4 items-center justify-center space-y-4">
         <Text className="text-gray-800 text-3xl font-bold text-center">Stay Updated!</Text>
         <Text className="text-gray-800 text-lg text-center max-w-xl">
           Subscribe to our newsletter for exclusive offers, new services, and wellness tips delivered straight to your inbox.

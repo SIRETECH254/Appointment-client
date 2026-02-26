@@ -21,7 +21,6 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
-  FlatList,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
@@ -164,20 +163,6 @@ export default function ServicesPage() {
     handleServiceCardPress(service);
   }, [handleServiceCardPress]);
 
-  /**
-   * Render individual service card
-   * Uses the ServiceCard component with proper props
-   */
-  const renderServiceCard = useCallback(({ item }: { item: IService }) => {
-  return (
-      <ServiceCard
-        service={item}
-        onPress={() => handleServiceCardPress(item)}
-        showBookButton={true}
-        onBookPress={() => handleBookNowPress(item)}
-      />
-    );
-  }, [handleServiceCardPress, handleBookNowPress]);
 
   /**
    * Render skeleton loading cards
@@ -340,43 +325,38 @@ export default function ServicesPage() {
       </View>
 
       {/* Services List */}
-      {isFetching && !isLoading ? (
-        // Show skeleton cards while fetching/refreshing
-        <ScrollView
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
-              colors={['#D4AF37']}
-              tintColor="#D4AF37"
-            />
-          }
-        >
-          {renderSkeletonCards()}
-    </ScrollView>
-      ) : (
-        <FlatList
-          data={services}
-          renderItem={renderServiceCard}
-          keyExtractor={(item) => item._id}
-          contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-          refreshControl={
-            <RefreshControl
-              refreshing={isFetching}
-              onRefresh={refetch}
-              colors={['#D4AF37']}
-              tintColor="#D4AF37"
-            />
-          }
-          ListEmptyComponent={renderEmptyState}
-          // Performance optimizations
-          removeClippedSubviews={true}
-          maxToRenderPerBatch={10}
-          windowSize={10}
-        />
-      )}
+      <ScrollView
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={isFetching}
+            onRefresh={refetch}
+            colors={['#D4AF37']}
+            tintColor="#D4AF37"
+          />
+        }
+      >
+        {isFetching && !isLoading ? (
+          // Show skeleton cards while fetching/refreshing
+          renderSkeletonCards()
+        ) : services.length === 0 ? (
+          // Show empty state when no services
+          renderEmptyState()
+        ) : (
+          // Render services using map
+          services.map((service) => (
+            <View key={service._id} className="mb-4">
+              <ServiceCard
+                service={service}
+                onPress={() => handleServiceCardPress(service)}
+                showBookButton={true}
+                onBookPress={() => handleBookNowPress(service)}
+              />
+            </View>
+          ))
+        )}
+      </ScrollView>
 
       {/* Floating Action Button: Service Payment (shown when authenticated) */}
       {isAuthenticated && (

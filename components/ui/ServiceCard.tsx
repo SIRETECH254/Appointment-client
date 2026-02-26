@@ -40,17 +40,18 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.7}
-      className="mb-4 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm"
+      className="rounded-2xl border border-gray-100 bg-white p-2 shadow-sm"
     >
       {/* Service Name */}
-      <Text className="mb-2 font-inter text-xl font-bold text-gray-900" numberOfLines={1}>
+      <Text className="mb-2 font-inter text-xl font-bold text-gray-900" numberOfLines={1} ellipsizeMode="tail">
         {service.name}
       </Text>
 
       {/* Service Description */}
       <Text 
         className="mb-4 font-inter text-sm leading-5 text-gray-600" 
-        numberOfLines={3}
+        numberOfLines={1}
+        ellipsizeMode="tail"
       >
         {service.description}
       </Text>
@@ -69,7 +70,7 @@ const ServiceCard: React.FC<ServiceCardProps> = ({
         <View className="flex-row items-center">
           <MaterialIcons name="attach-money" size={18} color="#D4AF37" />
           <Text className="ml-1 font-inter text-base font-bold text-brand-primary">
-            {formatCurrency(service.fullPrice)}
+            {service.fullPrice}
           </Text>
         </View>
       </View>
