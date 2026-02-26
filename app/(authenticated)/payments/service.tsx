@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,8 @@ import { useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useGetAllServices } from '@/tanstack/useServices';
 import { useInitiatePayment } from '@/tanstack/usePayments';
-import { formatCurrency } from '@/utils/paymentUtils';
+import { formatCurrency, normalizePhoneNumber, validateEmail } from '@/utils/paymentUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import type { IService } from '@/types/api.types';
 
 /**
@@ -28,9 +29,27 @@ const ServicePaymentScreen = () => {
   const [selectedServices, setSelectedServices] = useState<string[]>([]);
   const [method, setMethod] = useState<'MPESA' | 'PAYSTACK' | null>(null);
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [phoneError, setPhoneError] = useState<string>('');
+  const [emailError, setEmailError] = useState<string>('');
+
+  // Get user data for autofill (only when authenticated)
+  const { user, isAuthenticated } = useAuth();
 
   // Queries
   const { data: servicesData, isLoading: isLoadingServices } = useGetAllServices({ status: 'active' });
+
+  // Autofill phone and email from user profile when authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.phone && !phone) {
+        setPhone(user.phone);
+      }
+      if (user.email && !email) {
+        setEmail(user.email);
+      }
+    }
+  }, [isAuthenticated, user]);
   
   /**
    * Extract services array from the response
@@ -81,17 +100,56 @@ const ServicePaymentScreen = () => {
    * Handle Payment Submission
    */
   const handlePayment = useCallback(async () => {
-    if (selectedServices.length === 0) return Alert.alert('Required', 'Please select at least one service');
-    if (!method) return Alert.alert('Required', 'Please select a payment method');
-    if (method === 'MPESA' && !phone) return Alert.alert('Required', 'Please enter your M-Pesa phone number');
+    // Clear previous errors
+    setPhoneError('');
+    setEmailError('');
+
+    if (selectedServices.length === 0) {
+      return Alert.alert('Required', 'Please select at least one service');
+    }
+    if (!method) {
+      return Alert.alert('Required', 'Please select a payment method');
+    }
+
+    // Validate based on method
+    if (method === 'MPESA') {
+      if (!phone) {
+        setPhoneError('Phone number is required');
+        return;
+      }
+      const phoneValidation = normalizePhoneNumber(phone);
+      if (!phoneValidation.isValid) {
+        setPhoneError(phoneValidation.error || 'Invalid phone number');
+        return;
+      }
+    } else if (method === 'PAYSTACK') {
+      if (!email) {
+        setEmailError('Email is required');
+        return;
+      }
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.isValid) {
+        setEmailError(emailValidation.error || 'Invalid email address');
+        return;
+      }
+    }
 
     try {
-      const result = await initiateMutation.mutateAsync({
+      const payload: any = {
         appointmentId: 'SERVICE_PAYMENT', // Backend convention for non-appointment payments if allowed, else use dedicated payload
         method: method,
-        phone: phone,
         services: selectedServices
-      });
+      };
+
+      if (method === 'MPESA') {
+        const phoneValidation = normalizePhoneNumber(phone);
+        payload.phone = phoneValidation.normalized;
+      } else {
+        const emailValidation = validateEmail(email);
+        payload.email = emailValidation.normalized;
+      }
+
+      const result = await initiateMutation.mutateAsync(payload);
       
       // Success handling - navigate to status tracking
       const paymentId = result.payment?._id || result.paymentId;
@@ -104,7 +162,7 @@ const ServicePaymentScreen = () => {
     } catch {
       // Error handled by mutation
     }
-  }, [selectedServices, method, phone, initiateMutation, router]);
+  }, [selectedServices, method, phone, email, initiateMutation, router]);
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -161,7 +219,11 @@ const ServicePaymentScreen = () => {
           <Text className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3 px-1">Payment Method</Text>
           <View className="flex-row gap-3 mb-6">
             <TouchableOpacity
-              onPress={() => setMethod('MPESA')}
+              onPress={() => {
+                setMethod('MPESA');
+                setPhoneError('');
+                setEmailError('');
+              }}
               className={`flex-1 items-center p-4 rounded-2xl border ${
                 method === 'MPESA' ? 'border-brand-primary bg-brand-tint/30' : 'border-gray-100 bg-white'
               }`}
@@ -171,7 +233,11 @@ const ServicePaymentScreen = () => {
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setMethod('PAYSTACK')}
+              onPress={() => {
+                setMethod('PAYSTACK');
+                setPhoneError('');
+                setEmailError('');
+              }}
               className={`flex-1 items-center p-4 rounded-2xl border ${
                 method === 'PAYSTACK' ? 'border-brand-primary bg-brand-tint/30' : 'border-gray-100 bg-white'
               }`}
@@ -187,11 +253,48 @@ const ServicePaymentScreen = () => {
               <Text className="label">M-Pesa Phone Number</Text>
               <TextInput
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(text) => {
+                  setPhone(text);
+                  setPhoneError(''); // Clear error when user types
+                }}
                 keyboardType="phone-pad"
-                placeholder="e.g. 0712345678"
+                placeholder="e.g. 0757429010 or 254757429010"
                 className="input"
               />
+              <Text className="mt-2 text-[10px] text-gray-400 italic">
+                Enter the number that will receive the STK push prompt. Formats: 07XXXXXXXX (mobile) or 01XXXXXXXX (landline) or 2547XXXXXXXX / 2541XXXXXXXX with country code
+              </Text>
+              {phoneError ? (
+                <View className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <Text className="text-sm text-red-700 font-medium">{phoneError}</Text>
+                </View>
+              ) : null}
+            </View>
+          )}
+
+          {/* Email Input for Paystack */}
+          {method === 'PAYSTACK' && (
+            <View className="auth-field mb-8">
+              <Text className="label">Email Address</Text>
+              <TextInput
+                value={email}
+                onChangeText={(text) => {
+                  setEmail(text);
+                  setEmailError(''); // Clear error when user types
+                }}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                placeholder="e.g. name@example.com"
+                className="input"
+              />
+              <Text className="mt-2 text-[10px] text-gray-400 italic">
+                Enter your email address for payment confirmation
+              </Text>
+              {emailError ? (
+                <View className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl">
+                  <Text className="text-sm text-red-700 font-medium">{emailError}</Text>
+                </View>
+              ) : null}
             </View>
           )}
         </View>

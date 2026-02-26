@@ -115,7 +115,8 @@ export interface CreateAppointmentPayload {
 
 export interface ConfirmAppointmentPayload {
   method: 'MPESA' | 'PAYSTACK';
-  phone: string;
+  phone?: string; // Required for MPESA
+  email?: string; // Required for PAYSTACK
 }
 
 export interface RescheduleAppointmentPayload {
@@ -186,14 +187,16 @@ export interface DayAvailability {
 export interface InitiatePaymentPayload {
   appointmentId: string;
   method: 'MPESA' | 'PAYSTACK';
-  phone: string;
+  phone?: string; // Required for MPESA
+  email?: string; // Required for PAYSTACK
   services?: string[];
 }
 
 export interface ServicePaymentPayload {
   appointmentId: string;
   method: 'MPESA' | 'PAYSTACK';
-  phone: string;
+  phone?: string; // Required for MPESA
+  email?: string; // Required for PAYSTACK
   amount: number;
 }
 
