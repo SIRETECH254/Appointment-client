@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   SafeAreaView,
 } from 'react-native';
@@ -16,13 +15,12 @@ import {
 } from '@/tanstack/useAppointments';
 import {
   formatAppointmentDateTime,
-  formatAppointmentStatus,
-  getAppointmentStatusVariant,
   canRescheduleAppointment,
   canCancelAppointment,
   isAppointmentPending,
   isAppointmentConfirmed,
 } from '@/utils/appointmentUtils';
+import StatusBadge from '@/components/ui/StatusBadge';
 import { formatCurrency } from '@/utils/paymentUtils';
 import type { IAppointment } from '@/types/api.types';
 
@@ -65,9 +63,89 @@ const AppointmentDetailsScreen = () => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#D4AF37" />
-      </View>
+      <SafeAreaView className="flex-1 bg-white">
+        <Stack.Screen
+          options={{
+            title: 'Appointment Details',
+            headerShown: true,
+          }}
+        />
+        <ScrollView className="flex-1">
+          <View className="p-4">
+            {/* Header Card Skeleton */}
+            <View className="mb-6 rounded-2xl bg-gray-50 p-5 border border-gray-100 animate-pulse">
+              <View className="flex-row justify-between items-center mb-4">
+                <View>
+                  <View className="h-3 bg-gray-200 rounded w-32 mb-2" />
+                  <View className="h-4 bg-gray-200 rounded w-24" />
+                </View>
+                <View className="h-6 w-20 bg-gray-200 rounded-full" />
+              </View>
+              <View className="flex-row items-center">
+                <View className="h-12 w-12 rounded-full bg-gray-200" />
+                <View className="ml-3">
+                  <View className="h-5 bg-gray-200 rounded w-40 mb-2" />
+                  <View className="h-3 bg-gray-200 rounded w-32" />
+                </View>
+              </View>
+            </View>
+
+            {/* Details Section Skeleton */}
+            <View className="mb-6">
+              <View className="h-4 bg-gray-200 rounded w-20 mb-3" />
+              <View className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <View className="space-y-4">
+                  <View className="flex-row items-start">
+                    <View className="h-5 w-5 bg-gray-200 rounded" />
+                    <View className="ml-3 flex-1">
+                      <View className="h-4 bg-gray-200 rounded w-24 mb-2" />
+                      <View className="h-4 bg-gray-200 rounded w-48" />
+                    </View>
+                  </View>
+                  <View className="flex-row items-start mt-4">
+                    <View className="h-5 w-5 bg-gray-200 rounded" />
+                    <View className="ml-3 flex-1">
+                      <View className="h-4 bg-gray-200 rounded w-24 mb-2" />
+                      <View className="h-4 bg-gray-200 rounded w-48" />
+                    </View>
+                  </View>
+                  <View className="flex-row items-start mt-4">
+                    <View className="h-5 w-5 bg-gray-200 rounded" />
+                    <View className="ml-3 flex-1">
+                      <View className="h-4 bg-gray-200 rounded w-24 mb-2" />
+                      <View className="h-4 bg-gray-200 rounded w-56" />
+                    </View>
+                  </View>
+                </View>
+              </View>
+            </View>
+
+            {/* Payment Section Skeleton */}
+            <View className="mb-6">
+              <View className="h-4 bg-gray-200 rounded w-20 mb-3" />
+              <View className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <View className="flex-row justify-between items-center mb-3">
+                  <View className="h-4 bg-gray-200 rounded w-24" />
+                  <View className="h-4 bg-gray-200 rounded w-20" />
+                </View>
+                <View className="flex-row justify-between items-center mb-3">
+                  <View className="h-4 bg-gray-200 rounded w-32" />
+                  <View className="h-4 bg-gray-200 rounded w-20" />
+                </View>
+                <View className="border-t border-gray-50 pt-3 flex-row justify-between items-center">
+                  <View className="h-5 bg-gray-200 rounded w-24" />
+                  <View className="h-6 bg-gray-200 rounded w-28" />
+                </View>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Footer Skeleton */}
+        <View className="p-4 border-t border-gray-100 bg-white">
+          <View className="h-12 bg-gray-200 rounded-xl" />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -88,7 +166,6 @@ const AppointmentDetailsScreen = () => {
     );
   }
 
-  const statusVariant = getAppointmentStatusVariant(appointment.status);
 
   return (
     <SafeAreaView className="flex-1 bg-white">
@@ -102,56 +179,78 @@ const AppointmentDetailsScreen = () => {
       <ScrollView className="flex-1">
         <View className="p-4">
           {/* Header Card */}
-          <View className="mb-6 rounded-2xl bg-gray-50 p-5 border border-gray-100">
+          <View className="mb-6 rounded-2xl bg-amber-50 p-5 border border-amber-200">
             <View className="flex-row justify-between items-center mb-4">
               <View>
-                <Text className="text-[10px] uppercase tracking-widest text-gray-400">Appointment ID</Text>
-                <Text className="font-mono text-xs font-bold text-gray-600">#{appointment._id.slice(-8).toUpperCase()}</Text>
+                <View className="flex-row items-center mb-1">
+                  <MaterialIcons name="fingerprint" size={14} color="#D97706" />
+                  <Text className="ml-1 text-[10px] uppercase tracking-widest text-amber-700">Appointment ID</Text>
+                </View>
+                <Text className="font-mono text-xs font-bold text-amber-800">#{appointment._id.slice(-8).toUpperCase()}</Text>
               </View>
-              <View className={`badge ${statusVariant}`}>
-                <Text className="text-xs font-semibold">{formatAppointmentStatus(appointment.status)}</Text>
-              </View>
+              <StatusBadge 
+                status={appointment.status || ''} 
+                type="appointment"
+                className="ml-2"
+              />
             </View>
 
             <View className="flex-row items-center">
-              <View className="h-12 w-12 rounded-full bg-brand-primary items-center justify-center">
+              <View className="h-12 w-12 rounded-full bg-brand-primary items-center justify-center shadow-md">
                 <MaterialIcons name="person" size={24} color="white" />
               </View>
               <View className="ml-3">
-                <Text className="text-lg font-bold text-gray-900">
-                  {typeof appointment.staffId === 'object' ? `${appointment.staffId.firstName} ${appointment.staffId.lastName}` : 'Professional Staff'}
-                </Text>
-                <Text className="text-xs text-gray-500">Professional Staff</Text>
+                <View className="flex-row items-center">
+                  <MaterialIcons name="badge" size={14} color="#D97706" />
+                  <Text className="ml-1 text-lg font-bold text-gray-900">
+                    {typeof appointment.staffId === 'object' ? `${appointment.staffId.firstName} ${appointment.staffId.lastName}` : 'Professional Staff'}
+                  </Text>
+                </View>
+                <View className="flex-row items-center mt-1">
+                  <MaterialIcons name="work" size={12} color="#9CA3AF" />
+                  <Text className="ml-1 text-xs text-gray-500">Professional Staff</Text>
+                </View>
               </View>
             </View>
           </View>
 
           {/* Details Section */}
           <View className="mb-6">
-            <Text className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3 px-1">Details</Text>
-            <View className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <View className="flex-row items-center mb-3 px-1">
+              <View className="h-6 w-6 rounded-full bg-amber-100 items-center justify-center mr-2">
+                <MaterialIcons name="info" size={16} color="#D97706" />
+              </View>
+              <Text className="text-sm font-bold uppercase tracking-wider text-amber-700">Details</Text>
+            </View>
+            <View className="rounded-2xl border border-amber-100 bg-amber-50 p-5 shadow-sm">
               <View className="space-y-4">
                 <View className="flex-row items-start">
-                  <MaterialIcons name="event" size={20} color="#D4AF37" />
-                  <View className="ml-3">
-                    <Text className="text-sm font-bold text-gray-900">Date & Time</Text>
-                    <Text className="text-sm text-gray-600">{formatAppointmentDateTime(appointment.startTime)}</Text>
+                  <View className="h-8 w-8 rounded-full bg-orange-100 items-center justify-center">
+                    <MaterialIcons name="event" size={18} color="#EA580C" />
+                  </View>
+                  <View className="ml-3 flex-1">
+                    <Text className="text-sm font-bold text-orange-700">Date & Time</Text>
+                    <Text className="text-sm text-gray-700 mt-1">{formatAppointmentDateTime(appointment.startTime)}</Text>
                   </View>
                 </View>
 
                 <View className="flex-row items-start mt-4">
-                  <MaterialIcons name="access-time" size={20} color="#D4AF37" />
-                  <View className="ml-3">
-                    <Text className="text-sm font-bold text-gray-900">Booked On</Text>
-                    <Text className="text-sm text-gray-600">{formatAppointmentDateTime(appointment.createdAt)}</Text>
+                  <View className="h-8 w-8 rounded-full bg-teal-100 items-center justify-center">
+                    <MaterialIcons name="access-time" size={18} color="#0D9488" />
+                  </View>
+                  <View className="ml-3 flex-1">
+                    <Text className="text-sm font-bold text-teal-700">Booked On</Text>
+                    <Text className="text-sm text-gray-700 mt-1">{formatAppointmentDateTime(appointment.createdAt)}</Text>
                   </View>
                 </View>
 
                 <View className="flex-row items-start mt-4">
-                  <MaterialIcons name="content-cut" size={20} color="#D4AF37" />
-                  <View className="ml-3">
-                    <Text className="text-sm font-bold text-gray-900">Services</Text>
-                    <Text className="text-sm text-gray-600">
+                  <View className="h-8 w-8 rounded-full bg-amber-100 items-center justify-center">
+                    <MaterialIcons name="content-cut" size={18} color="#D97706" />
+                  </View>
+                  <View className="ml-3 flex-1">
+                    <Text className="text-sm font-bold text-amber-700">Services</Text>
+                    <Text className="text-sm text-gray-700 mt-1">
                       {appointment.services.map((s: any) => s.name).join(', ')}
                     </Text>
                   </View>
@@ -159,10 +258,12 @@ const AppointmentDetailsScreen = () => {
 
                 {appointment.notes && (
                   <View className="flex-row items-start mt-4">
-                    <MaterialIcons name="notes" size={20} color="#D4AF37" />
-                    <View className="ml-3">
-                      <Text className="text-sm font-bold text-gray-900">Notes</Text>
-                      <Text className="text-sm text-gray-600">{appointment.notes}</Text>
+                    <View className="h-8 w-8 rounded-full bg-orange-100 items-center justify-center">
+                      <MaterialIcons name="notes" size={18} color="#EA580C" />
+                    </View>
+                    <View className="ml-3 flex-1">
+                      <Text className="text-sm font-bold text-orange-700">Notes</Text>
+                      <Text className="text-sm text-gray-700 mt-1">{appointment.notes}</Text>
                     </View>
                   </View>
                 )}
@@ -172,18 +273,32 @@ const AppointmentDetailsScreen = () => {
 
           {/* Payment Section */}
           <View className="mb-6">
-            <Text className="text-sm font-bold uppercase tracking-wider text-gray-400 mb-3 px-1">Payment</Text>
-            <View className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+            <View className="flex-row items-center mb-3 px-1">
+              <View className="h-6 w-6 rounded-full bg-teal-100 items-center justify-center mr-2">
+                <MaterialIcons name="payment" size={16} color="#0D9488" />
+              </View>
+              <Text className="text-sm font-bold uppercase tracking-wider text-teal-700">Payment</Text>
+            </View>
+            <View className="rounded-2xl border border-teal-100 bg-teal-50 p-5 shadow-sm">
               <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-gray-600">Booking Fee</Text>
-                <Text className="font-bold text-gray-900">{formatCurrency(appointment.bookingFeeAmount)}</Text>
+                <View className="flex-row items-center">
+                  <MaterialIcons name="account-balance-wallet" size={16} color="#0D9488" />
+                  <Text className="ml-2 text-gray-700 font-medium">Booking Fee</Text>
+                </View>
+                <Text className="font-bold text-teal-700">{formatCurrency(appointment.bookingFeeAmount)}</Text>
               </View>
               <View className="flex-row justify-between items-center mb-3">
-                <Text className="text-gray-600">Remaining Balance</Text>
-                <Text className="font-bold text-gray-900">{formatCurrency(appointment.remainingAmount)}</Text>
+                <View className="flex-row items-center">
+                  <MaterialIcons name="pending" size={16} color="#0D9488" />
+                  <Text className="ml-2 text-gray-700 font-medium">Remaining Balance</Text>
+                </View>
+                <Text className="font-bold text-teal-700">{formatCurrency(appointment.remainingAmount)}</Text>
               </View>
-              <View className="border-t border-gray-50 pt-3 flex-row justify-between items-center">
-                <Text className="text-base font-bold text-gray-900">Total Price</Text>
+              <View className="border-t border-teal-100 pt-3 flex-row justify-between items-center">
+                <View className="flex-row items-center">
+                  <MaterialIcons name="attach-money" size={18} color="#D4AF37" />
+                  <Text className="ml-2 text-base font-bold text-gray-900">Total Price</Text>
+                </View>
                 <Text className="text-lg font-bold text-brand-primary">
                   {formatCurrency(appointment.bookingFeeAmount + appointment.remainingAmount)}
                 </Text>

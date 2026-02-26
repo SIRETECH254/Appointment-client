@@ -17,6 +17,7 @@ import {
 } from '@/tanstack/useContact'; // Import from useContact.ts
 import { formatDateTimeWithTime } from '@/utils/notificationUtils';
 import { IContact } from '@/types/api.types'; // Import IContact
+import StatusBadge from '@/components/ui/StatusBadge';
 
 /**
  * @function ContactDetailsScreen
@@ -89,10 +90,53 @@ const ContactDetailsScreen = () => {
   // Render loading state while fetching message details.
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#D4AF37" />
-        <Text className="mt-2 text-gray-500">Loading message...</Text>
-      </View>
+      <SafeAreaView className="flex-1 bg-gray-50">
+        <Stack.Screen
+          options={{
+            title: 'Message Details',
+            headerShown: true,
+          }}
+        />
+        <ScrollView className="flex-1 p-6">
+          {/* Sender Info Skeleton */}
+          <View className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm animate-pulse">
+            <View className="h-6 bg-gray-200 rounded w-40 mb-2" />
+            <View className="h-4 bg-gray-200 rounded w-56 mb-3" />
+            <View className="h-5 bg-gray-200 rounded w-48" />
+          </View>
+
+          {/* Message Body Skeleton */}
+          <View className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm animate-pulse">
+            <View className="h-4 bg-gray-200 rounded w-full mb-2" />
+            <View className="h-4 bg-gray-200 rounded w-full mb-2" />
+            <View className="h-4 bg-gray-200 rounded w-5/6 mb-2" />
+            <View className="h-4 bg-gray-200 rounded w-4/6" />
+          </View>
+
+          {/* Message Details Skeleton */}
+          <View className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm animate-pulse">
+            <View className="h-3 bg-gray-200 rounded w-32 mb-4" />
+            <View className="flex-row justify-between items-center py-1 border-b border-gray-50 mb-2">
+              <View className="h-4 bg-gray-200 rounded w-16" />
+              <View className="h-4 bg-gray-200 rounded w-24" />
+            </View>
+            <View className="flex-row justify-between items-center py-1 border-b border-gray-50 mb-2">
+              <View className="h-4 bg-gray-200 rounded w-16" />
+              <View className="h-6 w-20 bg-gray-200 rounded-full" />
+            </View>
+            <View className="flex-row justify-between items-center py-1">
+              <View className="h-4 bg-gray-200 rounded w-24" />
+              <View className="h-4 bg-gray-200 rounded w-32" />
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Footer Skeleton */}
+        <View className="p-4 border-t border-gray-100 bg-white animate-pulse">
+          <View className="h-12 bg-gray-200 rounded-xl mb-2" />
+          <View className="h-12 bg-gray-200 rounded-xl" />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -140,44 +184,95 @@ const ContactDetailsScreen = () => {
       <ScrollView className="flex-1 p-6">
         {/* View: Container for sender information and subject. */}
         <View className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-          {/* Text: Displays sender's name. */}
-          <Text className="text-xl font-bold text-gray-900 mb-1">{message.name}</Text>
-          {/* Text: Displays sender's email address. */}
-          <Text className="text-sm text-gray-600 mb-3">{message.email}</Text>
-          {/* Text: Displays the subject of the message. */}
-          <Text className="text-lg font-semibold text-gray-800">Subject: {message.subject}</Text>
+          {/* View: Sender name with icon */}
+          <View className="flex-row items-center mb-2">
+            <View className="h-10 w-10 rounded-full bg-amber-100 items-center justify-center mr-3">
+              <MaterialIcons name="person" size={20} color="#D97706" />
+            </View>
+            <Text className="text-xl font-bold text-gray-900 flex-1">{message.name}</Text>
+          </View>
+          
+          {/* View: Email with icon */}
+          <View className="flex-row items-center mb-3">
+            <View className="h-6 w-6 rounded-full bg-orange-100 items-center justify-center mr-2">
+              <MaterialIcons name="email" size={14} color="#EA580C" />
+            </View>
+            <Text className="text-sm text-gray-700">{message.email}</Text>
+          </View>
+          
+          {/* View: Subject with icon */}
+          <View className="flex-row items-center">
+            <View className="h-6 w-6 rounded-full bg-teal-100 items-center justify-center mr-2">
+              <MaterialIcons name="subject" size={14} color="#0D9488" />
+            </View>
+            <Text className="text-lg font-semibold text-gray-800">Subject: {message.subject}</Text>
+          </View>
         </View>
 
         {/* View: Container for the main message body. */}
         <View className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
+          {/* View: Message icon header */}
+          <View className="flex-row items-center mb-3 pb-2 border-b border-gray-50">
+            <View className="h-8 w-8 rounded-full bg-teal-100 items-center justify-center mr-2">
+              <MaterialIcons name="message" size={18} color="#0D9488" />
+            </View>
+            <Text className="text-sm font-bold text-teal-700 uppercase tracking-wide">Message</Text>
+          </View>
           {/* Text: Displays the full content of the message. */}
           <Text className="text-base leading-6 text-gray-700">{message.message}</Text>
         </View>
 
         {/* View: Container for message metadata (phone, status, timestamps). */}
         <View className="mb-6 p-4 bg-white rounded-xl border border-gray-100 shadow-sm">
-          {/* Text: Label for metadata section. */}
-          <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-            Message Details
-          </Text>
+          {/* View: Section header with icon */}
+          <View className="flex-row items-center mb-3 pb-2 border-b border-gray-50">
+            <View className="h-6 w-6 rounded-full bg-orange-100 items-center justify-center mr-2">
+              <MaterialIcons name="info" size={14} color="#EA580C" />
+            </View>
+            <Text className="text-xs font-semibold text-orange-700 uppercase tracking-wider">
+              Message Details
+            </Text>
+          </View>
+          
           {/* Conditional rendering for phone number if available. */}
           {message.phone && (
-            <View className="flex-row justify-between items-center py-1 border-b border-gray-50">
-              <Text className="text-sm text-gray-500">Phone</Text>
+            <View className="flex-row justify-between items-center py-2 border-b border-gray-50">
+              <View className="flex-row items-center">
+                <View className="h-5 w-5 rounded-full bg-amber-100 items-center justify-center mr-2">
+                  <MaterialIcons name="phone" size={12} color="#D97706" />
+                </View>
+                <Text className="text-sm text-gray-700 font-medium">Phone</Text>
+              </View>
               {/* TouchableOpacity: Makes the phone number tappable to initiate a call. */}
               <TouchableOpacity onPress={() => Linking.openURL(`tel:${message.phone}`)}>
                 <Text className="text-sm font-medium text-brand-primary">{message.phone}</Text>
               </TouchableOpacity>
             </View>
           )}
+          
           {/* View: Displays message status. */}
-          <View className="flex-row justify-between items-center py-1 border-b border-gray-50">
-            <Text className="text-sm text-gray-500">Status</Text>
-            <Text className="text-sm font-medium text-gray-700 capitalize">{message.status.toLowerCase()}</Text>
+          <View className="flex-row justify-between items-center py-2 border-b border-gray-50">
+            <View className="flex-row items-center">
+              <View className="h-5 w-5 rounded-full bg-teal-100 items-center justify-center mr-2">
+                <MaterialIcons name="flag" size={12} color="#0D9488" />
+              </View>
+              <Text className="text-sm text-gray-700 font-medium">Status</Text>
+            </View>
+            <StatusBadge 
+              status={message.status} 
+              type="contact" 
+              className="ml-2"
+            />
           </View>
+          
           {/* View: Displays message submission timestamp. */}
-          <View className="flex-row justify-between items-center py-1">
-            <Text className="text-sm text-gray-500">Submitted On</Text>
+          <View className="flex-row justify-between items-center py-2">
+            <View className="flex-row items-center">
+              <View className="h-5 w-5 rounded-full bg-orange-100 items-center justify-center mr-2">
+                <MaterialIcons name="schedule" size={12} color="#EA580C" />
+              </View>
+              <Text className="text-sm text-gray-700 font-medium">Submitted On</Text>
+            </View>
             <Text className="text-sm font-medium text-gray-700">
               {formatDateTimeWithTime(message.createdAt.toString())}
             </Text>

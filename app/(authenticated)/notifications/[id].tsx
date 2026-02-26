@@ -4,7 +4,6 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
-  ActivityIndicator,
   Alert,
   SafeAreaView,
 } from 'react-native';
@@ -17,9 +16,9 @@ import {
 } from '@/tanstack/useNotifications';
 import {
   formatDateTimeWithTime,
-  getCategoryBadgeClass,
   getTypeDisplayName,
 } from '@/utils/notificationUtils';
+import StatusBadge from '@/components/ui/StatusBadge';
 
 /**
  * Notification Details Screen
@@ -82,9 +81,58 @@ const NotificationDetailsScreen = () => {
 
   if (isLoading) {
     return (
-      <View className="flex-1 items-center justify-center bg-white">
-        <ActivityIndicator size="large" color="#D4AF37" />
-      </View>
+      <SafeAreaView className="flex-1 bg-white">
+        <Stack.Screen
+          options={{
+            title: 'Details',
+            headerShown: true,
+          }}
+        />
+        <ScrollView className="flex-1 px-6 pt-6">
+          {/* Badges Skeleton */}
+          <View className="flex-row items-center gap-2 mb-4 animate-pulse">
+            <View className="h-6 w-24 bg-gray-200 rounded-full" />
+            <View className="h-6 w-20 bg-gray-200 rounded-full" />
+          </View>
+
+          {/* Subject Skeleton */}
+          <View className="h-8 bg-gray-200 rounded w-3/4 mb-4" />
+
+          {/* Message Skeleton */}
+          <View className="space-y-2 mb-8">
+            <View className="h-4 bg-gray-200 rounded w-full" />
+            <View className="h-4 bg-gray-200 rounded w-full" />
+            <View className="h-4 bg-gray-200 rounded w-5/6" />
+            <View className="h-4 bg-gray-200 rounded w-4/6" />
+          </View>
+
+          <View className="h-[1px] w-full bg-gray-100 mb-6" />
+
+          {/* Metadata Skeleton */}
+          <View className="space-y-4 mb-10">
+            <View>
+              <View className="h-3 bg-gray-200 rounded w-20 mb-2" />
+              <View className="h-4 bg-gray-200 rounded w-48" />
+            </View>
+            <View>
+              <View className="h-3 bg-gray-200 rounded w-16 mb-2" />
+              <View className="h-4 bg-gray-200 rounded w-24" />
+            </View>
+            <View>
+              <View className="h-3 bg-gray-200 rounded w-32 mb-2" />
+              <View className="rounded-xl bg-gray-50 p-4 space-y-2">
+                <View className="h-3 bg-gray-200 rounded w-full" />
+                <View className="h-3 bg-gray-200 rounded w-5/6" />
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Footer Skeleton */}
+        <View className="p-6 border-t border-gray-100 animate-pulse">
+          <View className="h-12 bg-gray-200 rounded-xl" />
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -122,62 +170,94 @@ const NotificationDetailsScreen = () => {
       <ScrollView className="flex-1 px-6 pt-6">
         {/* Category & Type Badges */}
         <View className="flex-row items-center gap-2 mb-4">
-          <View className={`rounded-full px-3 py-1 ${getCategoryBadgeClass(notification.category)}`}>
-            <Text className="text-xs font-bold uppercase">
-              {notification.category}
-            </Text>
-          </View>
-          <View className="rounded-full bg-gray-100 px-3 py-1">
-            <Text className="text-xs font-bold text-gray-600 uppercase">
-              {getTypeDisplayName(notification.type)}
-            </Text>
-          </View>
+          <StatusBadge
+            status={notification.category}
+            type="notification-category"
+          />
+          <StatusBadge
+            status={notification.type}
+            type="notification-type"
+          />
         </View>
 
-        {/* Subject */}
-        <Text className="text-2xl font-bold text-gray-900 mb-4">
-          {notification.subject}
-        </Text>
+        {/* Subject with icon */}
+        <View className="flex-row items-center mb-4">
+          <View className="h-8 w-8 rounded-full bg-amber-100 items-center justify-center mr-3">
+            <MaterialIcons name="subject" size={18} color="#D97706" />
+          </View>
+          <Text className="flex-1 text-2xl font-bold text-gray-900">
+            {notification.subject}
+          </Text>
+        </View>
 
-        {/* Message */}
-        <Text className="text-base leading-6 text-gray-700 mb-8">
-          {notification.message}
-        </Text>
+        {/* Message with icon */}
+        <View className="mb-8">
+          <View className="flex-row items-center mb-3">
+            <View className="h-6 w-6 rounded-full bg-orange-100 items-center justify-center mr-2">
+              <MaterialIcons name="message" size={14} color="#EA580C" />
+            </View>
+            <Text className="text-sm font-bold text-orange-700 uppercase tracking-wide">Message</Text>
+          </View>
+          <Text className="text-base leading-6 text-gray-700">
+            {notification.message}
+          </Text>
+        </View>
 
         <View className="h-[1px] w-full bg-gray-100 mb-6" />
 
         {/* Metadata section */}
         <View className="space-y-4 mb-10">
-          <View>
-            <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-              Sent On
-            </Text>
-            <Text className="mt-1 text-sm font-medium text-gray-700">
-              {formatDateTimeWithTime(notification.createdAt)}
-            </Text>
-          </View>
-
-          {!notification.isUnread && (
-            <View className="mt-4">
+          {/* Sent On with icon */}
+          <View className="flex-row items-center">
+            <View className="h-6 w-6 rounded-full bg-teal-100 items-center justify-center mr-3">
+              <MaterialIcons name="schedule" size={14} color="#0D9488" />
+            </View>
+            <View>
               <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Status
+                Sent On
               </Text>
               <Text className="mt-1 text-sm font-medium text-gray-700">
-                Read
+                {formatDateTimeWithTime(notification.createdAt)}
               </Text>
+            </View>
+          </View>
+
+          {/* Status with icon */}
+          {!notification.isUnread && (
+            <View className="flex-row items-center mt-4">
+              <View className="h-6 w-6 rounded-full bg-amber-100 items-center justify-center mr-3">
+                <MaterialIcons name="done-all" size={14} color="#D97706" />
+              </View>
+              <View>
+                <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Status
+                </Text>
+                <Text className="mt-1 text-sm font-medium text-gray-700">
+                  Read
+                </Text>
+              </View>
             </View>
           )}
 
+          {/* Related Information with icon */}
           {/* @ts-ignore - metadata might exist in some notifications */}
           {notification.metadata && Object.keys(notification.metadata).length > 0 && (
             <View className="mt-4">
-              <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Related Information
-              </Text>
+              <View className="flex-row items-center mb-2">
+                <View className="h-6 w-6 rounded-full bg-orange-100 items-center justify-center mr-2">
+                  <MaterialIcons name="info" size={14} color="#EA580C" />
+                </View>
+                <Text className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  Related Information
+                </Text>
+              </View>
               <View className="mt-2 rounded-xl bg-gray-50 p-4">
                 {Object.entries(notification.metadata).map(([key, value]) => (
-                  <View key={key} className="flex-row justify-between py-1">
-                    <Text className="text-xs text-gray-500 font-medium">{key}:</Text>
+                  <View key={key} className="flex-row justify-between items-center py-1">
+                    <View className="flex-row items-center">
+                      <MaterialIcons name="label" size={12} color="#9CA3AF" />
+                      <Text className="ml-1 text-xs text-gray-500 font-medium">{key}:</Text>
+                    </View>
                     <Text className="text-xs text-gray-800 font-semibold">{String(value)}</Text>
                   </View>
                 ))}

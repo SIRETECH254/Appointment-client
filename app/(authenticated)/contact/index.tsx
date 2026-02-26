@@ -13,7 +13,8 @@ import {
 import { useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useGetAllContactMessages } from '@/tanstack/useContact';
-import { formatDateTime } from '@/utils/notificationUtils';
+import ContactCard from '@/components/ui/ContactCard';
+import ContactCardSkeleton from '@/components/ui/ContactCardSkeleton';
 import { IContact } from '@/types/api.types';
 
 /**
@@ -52,47 +53,8 @@ const ContactListScreen = () => {
    * @param {IContact} item - The contact message object.
    */
   const renderItem = useCallback(({ item }: { item: IContact }) => {
-    // Determine status variant based on the IContact status enum
-    const statusVariant = (status: IContact['status']) => {
-      switch (status) {
-        case 'NEW': return 'bg-blue-100 text-blue-700';
-        case 'READ': return 'bg-gray-100 text-gray-700';
-        case 'REPLIED': return 'bg-green-100 text-green-700';
-        case 'ARCHIVED': return 'bg-orange-100 text-orange-700';
-        default: return 'bg-gray-100 text-gray-700'; // Fallback
-      }
-    };
-
-    return (
-      <TouchableOpacity
-        onPress={() => router.push(`/(authenticated)/contact/${item._id}`)}
-        className="mb-3 rounded-xl border border-gray-100 bg-white p-4 shadow-sm"
-      >
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1">
-            {/* Sender Name and Subject */}
-            <Text className="text-base font-semibold text-gray-900" numberOfLines={1}>
-              {item.name} - {item.subject}
-            </Text>
-            {/* Message preview */}
-            <Text className="mt-1 text-sm text-gray-500" numberOfLines={2}>
-              {item.message}
-            </Text>
-            {/* Date and Status */}
-            <Text className="mt-2 text-[10px] text-gray-400 font-medium">
-              {formatDateTime(item.createdAt.toString())}
-            </Text>
-          </View>
-          {/* Status Badge */}
-          <View className={`rounded-full px-2 py-0.5 ml-2 ${statusVariant(item.status)}`}>
-            <Text className="text-[10px] font-semibold uppercase">
-              {item.status}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [router]);
+    return <ContactCard contact={item} />;
+  }, []);
 
   // Filter options for message status, using the new uppercase status values
   const statusFilters = [
@@ -163,11 +125,11 @@ const ContactListScreen = () => {
 
       {/* Conditional rendering for loading state */}
       {isLoading && !isFetching ? (
-        // View: Loading indicator container.
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#D4AF37" />
-          {/* Text: Loading message. */}
-          <Text className="mt-2 text-gray-500">Loading messages...</Text>
+        // View: Loading skeleton container.
+        <View className="flex-1 p-4">
+          {[...Array(3)].map((_, index) => (
+            <ContactCardSkeleton key={index} />
+          ))}
         </View>
       ) : (
         // FlatList: Displays the list of contact messages.

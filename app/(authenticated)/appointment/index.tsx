@@ -11,12 +11,8 @@ import {
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import { useGetMyAppointments } from '@/tanstack/useAppointments';
-import {
-  formatAppointmentDateTime,
-  formatAppointmentStatus,
-  getAppointmentStatusVariant,
-} from '@/utils/appointmentUtils';
-import { formatCurrency } from '@/utils/paymentUtils';
+import AppointmentCard from '@/components/ui/AppointmentCard';
+import AppointmentCardSkeleton from '@/components/ui/AppointmentCardSkeleton';
 import type { IAppointment } from '@/types/api.types';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
@@ -41,7 +37,7 @@ const AppointmentListScreen = () => {
   // Prepare parameters for the TanStack Query hook
   const params : any = useMemo(() => ({
     search: debouncedSearch || undefined,
-    status: filterStatus === 'all' ? undefined : filterStatus.toUpperCase(),
+    status: filterStatus === 'all' ? undefined : filterStatus.toLowerCase(),
   }), [debouncedSearch, filterStatus]);
 
   // Fetch appointments using the custom TanStack hook
@@ -53,60 +49,7 @@ const AppointmentListScreen = () => {
    * Render a single appointment card
    */
   const renderItem = ({ item }: { item: IAppointment }) => {
-    const statusVariant = getAppointmentStatusVariant(item.status);
-    
-    return (
-      <TouchableOpacity
-        onPress={() => router.push(`/(authenticated)/appointment/${item._id}`)}
-        className="mb-4 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm"
-      >
-        <View className="flex-row items-start justify-between">
-          <View className="flex-1">
-            <Text className="text-lg font-bold text-gray-900" numberOfLines={1}>
-              {item.services.map(s => s.name).join(', ')}
-            </Text>
-            
-            <View className="mt-2 flex-row items-center">
-              <MaterialIcons name="event" size={16} color="#6B7280" />
-              <Text className="ml-1 font-inter text-sm text-gray-600">
-                {formatAppointmentDateTime(item.startTime)}
-              </Text>
-            </View>
-
-            <View className="mt-1 flex-row items-center">
-              <MaterialIcons name="access-time" size={16} color="#9CA3AF" />
-              <Text className="ml-1 font-inter text-[10px] text-gray-400">
-                Booked on: {formatAppointmentDateTime(item.createdAt)}
-              </Text>
-            </View>
-
-            <View className="mt-1 flex-row items-center">
-              <MaterialIcons name="person-outline" size={16} color="#6B7280" />
-              <Text className="ml-1 font-inter text-sm text-gray-600">
-                Staff: {typeof item.staffId === 'object' ? `${item.staffId.firstName} ${item.staffId.lastName}` : item.staffId}
-              </Text>
-            </View>
-          </View>
-
-          <View className={`badge ${statusVariant}`}>
-            <Text className="text-xs font-semibold">
-              {formatAppointmentStatus(item.status)}
-            </Text>
-          </View>
-        </View>
-
-        <View className="mt-4 flex-row items-center justify-between border-t border-gray-50 pt-3">
-          <View>
-            <Text className="text-[10px] uppercase tracking-wider text-gray-400">Total Amount</Text>
-            <Text className="font-inter text-base font-bold text-brand-primary">
-              {formatCurrency(item.remainingAmount + item.bookingFeeAmount)}
-            </Text>
-          </View>
-          
-          <MaterialIcons name="chevron-right" size={24} color="#D1D5DB" />
-        </View>
-      </TouchableOpacity>
-    );
+    return <AppointmentCard appointment={item} />;
   };
 
   const statusFilters = [
@@ -174,9 +117,10 @@ const AppointmentListScreen = () => {
 
       {/* Main List */}
       {isLoading && !isFetching ? (
-        <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#D4AF37" />
-          <Text className="mt-2 text-gray-500">Loading appointments...</Text>
+        <View className="flex-1 p-4">
+          {[...Array(3)].map((_, index) => (
+            <AppointmentCardSkeleton key={index} />
+          ))}
         </View>
       ) : (
         <FlatList

@@ -76,11 +76,11 @@
   }
 
   .badge-soft {
-    @apply rounded-full bg-brand-tint px-3 py-1 font-inter text-sm font-medium text-brand-primary;
+    @apply rounded-full bg-blue-100 px-3 py-1 font-inter text-sm font-medium text-brand-primary;
   }
 
   .badge-success {
-    @apply rounded-full bg-emerald-100 px-3 py-1 font-inter text-sm font-medium text-emerald-700;
+    @apply rounded-full bg-brand-tint px-3 py-1 font-inter text-sm font-medium text-emerald-700;
   }
 
   .badge-error {
