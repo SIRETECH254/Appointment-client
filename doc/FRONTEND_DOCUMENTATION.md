@@ -203,7 +203,16 @@ appointment-client/
 │   │   ├── Alert.tsx
 │   │   ├── Badge.tsx
 │   │   ├── Loading.tsx
-│   │   └── EmptyState.tsx
+│   │   ├── EmptyState.tsx
+│   │   ├── StatusBadge.tsx      # Reusable status badge with icons
+│   │   ├── AppointmentCard.tsx   # Appointment card component
+│   │   ├── AppointmentCardSkeleton.tsx
+│   │   ├── ContactCard.tsx       # Contact card component
+│   │   ├── ContactCardSkeleton.tsx
+│   │   ├── PaymentCard.tsx       # Payment card component
+│   │   ├── PaymentCardSkeleton.tsx
+│   │   ├── NotificationCard.tsx  # Notification card component
+│   │   └── NotificationCardSkeleton.tsx
 │   ├── forms/
 │   │   ├── FormInput.tsx
 │   │   ├── Select.tsx
@@ -596,19 +605,25 @@ appointment-client/
 **Purpose:** Notification center.
 
 **Features:**
-- List of notifications with filters (category: general, appointment, payment; status: unread, read).
-- Unread count badge.
-- Notification items: subject, message preview, timestamp, read/unread indicator.
+- List of notifications with filters (category: all, appointment, payment, general).
+- Uses `NotificationCard` component for consistent display.
+- Notification cards: StatusBadge for category and type, subject with icon, message preview with icon, date with icon, unread indicator.
+- Loading state shows 5 `NotificationCardSkeleton` components.
 - Tap notification → Notification details.
-- Swipe to mark as read or delete.
-- "Mark all as read" button.
+- "Mark all as read" button with confirmation.
 - Pull-to-refresh.
 - Real-time updates via Socket.io.
 
-**Backend:** `GET /api/notifications?category=...&status=...&page=...&limit=...`
+**Backend:** `GET /api/notifications?category=...&page=...&limit=...`
 
 **Navigation:**
 - Tap notification → `notifications/[id]`
+
+**Recent Changes:**
+- Removed search bar functionality.
+- Removed delete button from notification cards.
+- Added `NotificationCard` and `NotificationCardSkeleton` components.
+- Consistent badge usage with `StatusBadge` component.
 
 ---
 
@@ -616,16 +631,23 @@ appointment-client/
 **Purpose:** View single notification.
 
 **Features:**
-- Full notification: subject, message, category, timestamp.
-- Mark as read on view.
+- Full notification: StatusBadge for category and type, subject with icon, message with icon header, timestamps with icons.
+- Full-page skeleton loader with `animate-pulse` for loading states.
+- Mark as read on view (automatic).
 - Action buttons (if notification has actions): Confirm Appointment, Reschedule, etc.
-- Delete button.
+- Icons throughout: subject, message, schedule, done-all, info, label.
 
 **Backend:** `GET /api/notifications/:notificationId`, `PATCH /api/notifications/:notificationId/read`
 
 **Navigation:**
 - Action button → Navigate to route or call API endpoint
 - Back → `notifications/index`
+
+**Recent Changes:**
+- Removed delete button from header.
+- Added full-page skeleton loader for loading states.
+- Added icons throughout the page with gold family colors.
+- Consistent badge usage with `StatusBadge` component.
 
 ---
 
@@ -699,9 +721,32 @@ appointment-client/
 ### List Components (`components/lists/`)
 
 - **ServiceCard:** Service name, description, duration, price; "Book Now" button; tap navigates to booking.
-- **AppointmentCard:** Staff name, services, date/time, status badge, amounts; tap navigates to details.
-- **NotificationItem:** Subject, message preview, timestamp, read indicator; swipe actions; tap navigates to details.
 - **StaffCard:** Staff name, avatar, services provided; tap navigates to staff details or booking.
+
+### Card Components (`components/ui/`)
+
+- **AppointmentCard:** Reusable card component displaying appointment details with StatusBadge, icons, and formatted information.
+- **AppointmentCardSkeleton:** Loading skeleton for appointment cards.
+- **ContactCard:** Reusable card component displaying contact message details with StatusBadge and icons.
+- **ContactCardSkeleton:** Loading skeleton for contact cards.
+- **PaymentCard:** Reusable card component displaying payment details with StatusBadge and icons.
+- **PaymentCardSkeleton:** Loading skeleton for payment cards.
+- **NotificationCard:** Reusable card component displaying notification details with StatusBadge for category and type, icons, and preview.
+- **NotificationCardSkeleton:** Loading skeleton for notification cards (shows 5 instances while loading).
+
+### Status Badge Component (`components/ui/StatusBadge.tsx`)
+
+- **Purpose:** Reusable badge component with icons and consistent styling.
+- **Types Supported:** 
+  - `appointment`: PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW
+  - `payment`: SUCCESS, COMPLETED, PENDING, PROCESSING, FAILED, CANCELLED
+  - `contact`: NEW, READ, REPLIED, ARCHIVED
+  - `notification-category`: APPOINTMENT, PAYMENT, SYSTEM, PROMOTIONAL, GENERAL
+  - `notification-type`: EMAIL, SMS, PUSH, IN_APP
+- **Features:** 
+  - Icons for each status
+  - Color-coded backgrounds and text (gold family colors for notifications)
+  - Consistent styling across all entity types
 
 ### Layout Components (`components/layout/`)
 

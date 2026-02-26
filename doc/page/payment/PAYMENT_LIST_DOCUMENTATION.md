@@ -16,47 +16,49 @@
 
 ## Imports
 ```tsx
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput, ScrollView } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { useGetMyPayments } from '@/tanstack/usePayments';
-import { formatPaymentStatus, getPaymentStatusVariant, formatPaymentMethod, formatCurrency } from '@/utils/paymentUtils';
-import { formatDateTime } from '@/utils/notificationUtils';
-import type { IPayment } from '@/types/api.types';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useGetMyPayments } from '@/tanstack/usePayments';
+import PaymentCard from '@/components/ui/PaymentCard';
+import PaymentCardSkeleton from '@/components/ui/PaymentCardSkeleton';
+import type { IPayment } from '@/types/api.types';
 ```
 
 ## Context and State Management
 - **TanStack Query:** `useGetMyPayments(params)` fetches the authenticated user's payment history.
 - **Local State:**
-  - `searchTerm` - Current search input value.
   - `filterStatus` - Selected status filter (all/pending/success/failed).
   - `filterMethod` - Selected payment method (all/mpesa/paystack).
-  - `currentPage` - Current page number for pagination.
+  - `page` - Current page number for pagination (default: 1).
 - **Derived State:** `params` memo for filtering and pagination.
 
 ## UI Structure
-- **Header with Search:** Sticky search input and filter toggles.
+- **Header:** Displays the screen title "Payment History".
 - **Filter Bar:** Horizontal scroll for status and method chips.
 - **FlatList:** Optimized mobile list for payment cards.
-- **Payment Card:** Touch-optimized card showing amount, status, date, and method.
+- **Payment Card:** Reusable `PaymentCard` component displaying payment number with icon, amount, date with icon, payment method with icon, type with icon, and StatusBadge for status.
+- **Loading State:** Shows `PaymentCardSkeleton` components while payments are being fetched.
 
 ## Planned Layout
 ```
 ┌────────────────────────────────────────────┐
-│ 🔍 Search Payment #                        │
+│ Payment History                             │
 ├────────────────────────────────────────────┤
 │ [All] [Success] [Pending] [Failed]         │
 ├────────────────────────────────────────────┤
 │ ┌────────────────────────────────────────┐ │
-│ │ PAY-2026-0029              [Success]   │ │
+│ │ 🧾 PAY-2026-0029        [Success]     │ │
 │ │ KES 500.00                             │ │
-│ │ Feb 16, 2026 • M-Pesa                  │ │
+│ │ 📅 Feb 16, 2026  💳 M-Pesa             │ │
+│ │ 🏷️ Type: Full Payment                  │ │
 │ └────────────────────────────────────────┘ │
 │ ┌────────────────────────────────────────┐ │
-│ │ PAY-2026-0030              [Pending]   │ │
+│ │ 🧾 PAY-2026-0030        [Pending]     │ │
 │ │ KES 800.00                             │ │
-│ │ Feb 17, 2026 • Card                    │ │
+│ │ 📅 Feb 17, 2026  💳 Card               │ │
+│ │ 🏷️ Type: Booking Fee                   │ │
 │ └────────────────────────────────────────┘ │
 └────────────────────────────────────────────┘
 ```
@@ -110,15 +112,17 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
   ```
 
 ## Components Used
+- `PaymentCard`: Reusable card component displaying payment with StatusBadge, icons, and formatted information.
+- `PaymentCardSkeleton`: Loading skeleton component for payment cards.
+- `StatusBadge`: Badge component with icons for payment status (SUCCESS, COMPLETED, PENDING, PROCESSING, FAILED, CANCELLED).
 - Expo Router: `useRouter`, `Stack`.
-- UI Components: `FlatList`, `RefreshControl`, `ActivityIndicator`.
-- Icons: `MaterialIcons`.
-- Custom classes from `global.css`: `badge`, `badge-success`, `badge-error`, `badge-soft`, `input-search`.
+- UI Components: `FlatList`, `RefreshControl`.
+- Icons: `MaterialIcons` for empty state.
 
 ## Error Handling
 - **Pull-to-Refresh:** Users can manually refetch data.
 - **Empty State:** Friendly message when no payments match filters.
-- **Loading State:** Centered `ActivityIndicator`.
+- **Loading State:** Shows `PaymentCardSkeleton` components while data is being fetched.
 
 ## Navigation Flow
 - Route: `/(authenticated)/payments/index`.
@@ -139,3 +143,10 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - Export payment history to PDF.
 - Date range filtering.
 - Visual charts for spending history.
+
+## Recent Changes
+- **Removed:** Search bar functionality.
+- **Added:** `PaymentCard` component with consistent StatusBadge usage.
+- **Added:** `PaymentCardSkeleton` for loading states.
+- **Updated:** Badge consistency - status uses `StatusBadge` component.
+- **Updated:** Icons added throughout cards (receipt, event, payment, category) with gold family colors.

@@ -17,14 +17,14 @@
 ## Imports
 ```tsx
 import { useCallback, useMemo, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useGetAppointment, useConfirmAppointment, useRescheduleAppointment, useCancelAppointment, useCheckInAppointment, useCompleteAppointment, useMarkNoShowAppointment } from '@/tanstack/useAppointments';
-import { Modal } from '@/components/ui/Modal';
-import { formatAppointmentDateTime, formatAppointmentStatus, getAppointmentStatusVariant, canRescheduleAppointment, canCancelAppointment, canCheckInAppointment } from '@/utils/appointmentUtils';
-import { formatCurrency } from '@/utils/paymentUtils';
-import type { IAppointment } from '@/types/api.types';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useGetAppointment, useConfirmAppointment, useRescheduleAppointment, useCancelAppointment, useCheckInAppointment, useCompleteAppointment, useMarkNoShowAppointment } from '@/tanstack/useAppointments';
+import { formatAppointmentDateTime, canRescheduleAppointment, canCancelAppointment, canCheckInAppointment } from '@/utils/appointmentUtils';
+import { formatCurrency } from '@/utils/paymentUtils';
+import StatusBadge from '@/components/ui/StatusBadge';
+import type { IAppointment } from '@/types/api.types';
 ```
 
 ## Context and State Management
@@ -44,11 +44,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 ## UI Structure
 - **Safe Area & ScrollView:** Main container for mobile layout.
-- **Header Card:** Appointment ID, status badge, customer and staff information.
-- **Details Card:** Appointment information (date/time, services, amounts, notes).
-- **Payment Information Card:** Booking fee, remaining amount, payment status.
+- **Header Card:** Appointment ID with icon, StatusBadge for status, staff information with icons.
+- **Details Section:** Appointment information with icons (date/time, booked on, services, notes).
+- **Payment Section:** Booking fee, remaining amount, total price with icons.
 - **Action Footer:** Contextual buttons based on appointment status.
-- **Modals:** React Native Modals for destructive actions (cancel, no-show).
+- **Loading State:** Full-page skeleton loader with `animate-pulse` for loading states.
 
 ## Planned Layout
 ```
@@ -123,14 +123,16 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **No-Show Endpoint:** `PATCH /api/appointments/:id/no-show` via `useMarkNoShowAppointment()` mutation.
 
 ## Components Used
+- `StatusBadge`: Badge component with icons for appointment status (PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW).
 - Expo Router: `useLocalSearchParams`, `useRouter`, `Stack`.
 - TanStack Query: `useGetAppointment`, mutation hooks for appointment actions.
-- UI Components: `Button`, `Card`, `Badge`, `Modal`, `Loading` (activity indicator).
-- Icons: `@expo/vector-icons/MaterialIcons`.
-- Utility Functions: `formatAppointmentDateTime`, `formatAppointmentStatus`, `getAppointmentStatusVariant`, `canRescheduleAppointment`, `canCancelAppointment`, `canCheckInAppointment` from `@/utils/appointmentUtils`.
+- UI Components: `Button`, `Card`, `Modal`.
+- Icons: `@expo/vector-icons/MaterialIcons` (fingerprint, badge, work, event, access-time, content-cut, notes, payment, account-balance-wallet, pending, attach-money).
+- **Skeleton Loader:** Full-page skeleton with `animate-pulse` for loading states (replaces ActivityIndicator).
+- Utility Functions: `formatAppointmentDateTime`, `canRescheduleAppointment`, `canCancelAppointment`, `canCheckInAppointment` from `@/utils/appointmentUtils`.
 
 ## Error Handling
-- **Loading State:** Show `ActivityIndicator` while fetching appointment data.
+- **Loading State:** Full-page skeleton loader with `animate-pulse` showing header, details, and payment section placeholders.
 - **Error State:** Display error message with a "Retry" button if fetch fails.
 - **Validation:** Client-side validation for action availability (check status, time constraints).
 - **Alerts:** Use `Alert.alert` for error feedback or action confirmations.
@@ -168,3 +170,10 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - Push notification settings for this specific appointment.
 - Calendar integration (Add to device calendar).
 - Directions to the shop (Map integration).
+
+## Recent Changes
+- **Added:** Full-page skeleton loader with `animate-pulse` for loading states.
+- **Added:** Icons throughout the page (fingerprint, badge, work, event, access-time, content-cut, notes, payment, account-balance-wallet, pending, attach-money) with gold family colors.
+- **Updated:** Badge consistency - status uses `StatusBadge` component.
+- **Updated:** Improved visual hierarchy with icon circles and colored text.
+- **Updated:** Removed background colors from cards (white/gray backgrounds).

@@ -16,44 +16,51 @@
 
 ## Imports
 ```tsx
-import { useCallback, useMemo, useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput } from 'react-native';
+import { useState, useMemo } from 'react';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
-import { useGetMyAppointments } from '@/tanstack/useAppointments';
-import { formatAppointmentDateTime, formatAppointmentStatus, getAppointmentStatusVariant } from '@/utils/appointmentUtils';
-import { formatCurrency } from '@/utils/paymentUtils';
-import type { IAppointment } from '@/types/api.types';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useGetMyAppointments } from '@/tanstack/useAppointments';
+import AppointmentCard from '@/components/ui/AppointmentCard';
+import AppointmentCardSkeleton from '@/components/ui/AppointmentCardSkeleton';
+import type { IAppointment } from '@/types/api.types';
 ```
 
 ## Context and State Management
 - **TanStack Query:** `useGetMyAppointments(params)` fetches the user's appointments.
 - **Local State:**
-  - `searchTerm` - Current search input value.
-  - `filterStatus` - Selected status (PENDING, CONFIRMED, etc.).
-  - `isRefreshing` - Boolean for pull-to-refresh state.
+  - `filterStatus` - Selected status (all, PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW).
+  - `page` - Current page number for pagination (default: 1).
 - **Derived State:** `params` memo for filtering and pagination.
 
 ## UI Structure
-- **Search & Filter Bar:** Sticky header with search input and horizontal status chips.
-- **FlatList:** optimized list for mobile rendering.
-- **Appointment Card:** Individual items showing staff, services, date, and status.
+- **Header:** Displays the screen title "My Appointments".
+- **Filter Bar:** Horizontal scroll for status chips.
+- **FlatList:** Optimized list for mobile rendering.
+- **Appointment Card:** Reusable `AppointmentCard` component displaying services, date/time with icon, booked on with icon, staff with icon, StatusBadge for status, and total amount.
+- **Loading State:** Shows `AppointmentCardSkeleton` components while appointments are being fetched.
 - **Empty State:** Visual feedback when no appointments exist.
 
 ## Planned Layout
 ```
 ┌────────────────────────────────────────────┐
-│ 🔍 Search Appointments                     │
+│ My Appointments                             │
 ├────────────────────────────────────────────┤
 │ [All] [Pending] [Confirmed] [Completed]    │
 ├────────────────────────────────────────────┤
 │ ┌────────────────────────────────────────┐ │
-│ │ Jane Smith - Haircut                   │ │
-│ │ Jan 25, 9:00 AM          [Confirmed]   │ │
+│ │ Haircut, Trim              [Confirmed] │ │
+│ │ 📅 Jan 25, 9:00 AM                     │ │
+│ │ ⏰ Booked on: Jan 20, 2025             │ │
+│ │ 👤 Staff: Jane Smith                    │ │
+│ │ Total Amount: KES 1,000.00          [>] │ │
 │ └────────────────────────────────────────┘ │
 │ ┌────────────────────────────────────────┐ │
-│ │ John Doe - Trim                        │ │
-│ │ Jan 26, 2:00 PM          [Pending]     │ │
+│ │ Beard Trim                  [Pending]  │ │
+│ │ 📅 Jan 26, 2:00 PM                     │ │
+│ │ ⏰ Booked on: Jan 21, 2025             │ │
+│ │ 👤 Staff: John Doe                     │ │
+│ │ Total Amount: KES 500.00            [>] │ │
 │ └────────────────────────────────────────┘ │
 └────────────────────────────────────────────┘
 ```
@@ -102,12 +109,17 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **Hook:** `useGetMyAppointments(params)`.
 
 ## Components Used
+- `AppointmentCard`: Reusable card component displaying appointment with StatusBadge, icons, and formatted information.
+- `AppointmentCardSkeleton`: Loading skeleton component for appointment cards.
+- `StatusBadge`: Badge component with icons for appointment status (PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW).
 - Expo Router: `useRouter`, `Stack`.
-- UI Components: `Card`, `Badge`, `Input`, `Loading`.
-- Icons: `MaterialIcons`.
+- UI Components: `FlatList`, `RefreshControl`.
+- Icons: `MaterialIcons` for empty state.
 
 ## Error Handling
 - **Pull-to-Refresh:** Users can manually trigger a refetch if an error occurs or to check for updates.
+- **Loading State:** Shows `AppointmentCardSkeleton` components while data is being fetched.
+- **Empty State:** Friendly message when no appointments match filters.
 - **Infinite Scroll Error:** Handle failures when loading more pages.
 
 ## Navigation Flow
@@ -118,3 +130,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ## Implementation Details
 - **FlatList Optimization:** Uses `keyExtractor` and `renderItem` for performance.
 - **RefreshControl:** Standard mobile pull-to-refresh implementation.
+
+## Recent Changes
+- **Removed:** Search bar functionality.
+- **Added:** `AppointmentCard` component with consistent StatusBadge usage.
+- **Added:** `AppointmentCardSkeleton` for loading states.
+- **Updated:** Badge consistency - status uses `StatusBadge` component.
+- **Updated:** Icons added throughout cards (event, access-time, person) with gold family colors.
+- **Updated:** Added detailed comments to card component sections.

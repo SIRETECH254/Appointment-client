@@ -16,31 +16,30 @@
 
 ## Imports
 ```tsx
-import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, TextInput } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, FlatList, RefreshControl } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useGetContactMessages } from '@/tanstack/useContactMessages'; // Placeholder hook
-import { formatDateTime } from '@/utils/notificationUtils'; // Re-using existing date formatter
+import { useGetContactMessages } from '@/tanstack/useContactMessages';
+import ContactCard from '@/components/ui/ContactCard';
+import ContactCardSkeleton from '@/components/ui/ContactCardSkeleton';
+import type { IContact } from '@/types/api.types';
 ```
 
 ## Context and State Management
-- **TanStack Query:** `useGetContactMessages(params)` (placeholder hook) to fetch a paginated list of submitted contact messages.
+- **TanStack Query:** `useGetContactMessages(params)` to fetch a paginated list of submitted contact messages.
 - **Local State:**
-  - `searchTerm` - Current value of the search input for filtering messages.
-  - `debouncedSearch` - Debounced version of `searchTerm` to reduce API calls.
   - `filterStatus` - Currently selected filter for message status (e.g., 'all', 'new', 'read', 'archived').
-  - `page` - Current page number for pagination.
-- **Derived State:** `params` object memoized for `useGetContactMessages` hook, incorporating search and filter criteria.
+  - `page` - Current page number for pagination (default: 1).
+- **Derived State:** `params` object memoized for `useGetContactMessages` hook, incorporating filter criteria.
 
 ## UI Structure
-- **Header:** Displays the screen title and potentially actions like "Mark All Read".
-- **Search Bar:** A `TextInput` with a search icon for filtering messages by keywords.
-- **Filter Chips:** A horizontal `ScrollView` containing `TouchableOpacity` chips for filtering messages by status (e.g., "All", "New", "Read").
+- **Header:** Displays the screen title "Contact Messages".
+- **Filter Chips:** A horizontal `ScrollView` containing `TouchableOpacity` chips for filtering messages by status (e.g., "All", "New", "Read", "Archived").
 - **Message List:** A `FlatList` component to efficiently render the contact messages.
-- **Message Card:** Each item in the list is a card displaying key information about a submitted message (sender, subject, date, status).
+- **Contact Card:** Reusable `ContactCard` component displaying sender name with icon, subject, message preview with icon, date with icon, and StatusBadge for status.
 - **Empty State:** A component to display when no messages are found after filtering or if the list is empty.
-- **Loading State:** `ActivityIndicator` displayed while messages are being fetched.
+- **Loading State:** Shows `ContactCardSkeleton` components while messages are being fetched.
 - **Refresh Control:** `RefreshControl` integrated with `FlatList` for pull-to-refresh functionality.
 
 ## Planned Layout
@@ -48,19 +47,17 @@ import { formatDateTime } from '@/utils/notificationUtils'; // Re-using existing
 ┌────────────────────────────────────────────┐
 │ Contact Messages                           │
 ├────────────────────────────────────────────┤
-│ 🔍 Search messages...                      │
-├────────────────────────────────────────────┤
 │ [All] [New] [Read] [Archived]              │
 ├────────────────────────────────────────────┤
 │ ┌────────────────────────────────────────┐ │
-│ │ John Doe - Subject Line                │ │
-│ │ Short message preview...               │ │
-│ │ 📅 Jan 25, 2025        [New]           │ │
+│ │ 👤 John Doe - Subject Line             │ │
+│ │ 💬 Short message preview...            │ │
+│ │ ⏰ Jan 25, 2025        [New]           │ │
 │ └────────────────────────────────────────┘ │
 │ ┌────────────────────────────────────────┐ │
-│ │ Jane Smith - Another Subject           │ │
-│ │ Another message preview...             │ │
-│ │ 📅 Jan 24, 2025        [Read]          │ │
+│ │ 👤 Jane Smith - Another Subject        │ │
+│ │ 💬 Another message preview...           │ │
+│ │ ⏰ Jan 24, 2025        [Read]          │ │
 │ └────────────────────────────────────────┘ │
 └────────────────────────────────────────────┘
 ```
@@ -103,13 +100,15 @@ import { formatDateTime } from '@/utils/notificationUtils'; // Re-using existing
 - **Parameters:** `page`, `limit`, `search`, `status`.
 
 ## Components Used
+- `ContactCard`: Reusable card component displaying contact message with StatusBadge, icons, and preview.
+- `ContactCardSkeleton`: Loading skeleton component for contact cards.
+- `StatusBadge`: Badge component with icons for contact status (NEW, READ, REPLIED, ARCHIVED).
 - Expo Router: `useRouter`, `Stack`.
-- React Native: `View`, `Text`, `FlatList`, `TouchableOpacity`, `ActivityIndicator`, `RefreshControl`, `TextInput`.
-- Icons: `MaterialIcons` from `@expo/vector-icons`.
-- Utility Functions: `formatDateTime` from `@/utils/notificationUtils` (or similar for messages).
+- React Native: `View`, `Text`, `FlatList`, `RefreshControl`.
+- Icons: `MaterialIcons` from `@expo/vector-icons` for empty state.
 
 ## Error Handling
-- **Loading State:** Displays an `ActivityIndicator` while data is being fetched.
+- **Loading State:** Shows `ContactCardSkeleton` components while data is being fetched.
 - **Error State:** Placeholder to display an error message if fetching fails.
 - **Empty State:** A dedicated UI component is shown if no contact messages are found or match the current filters.
 - **Pull-to-Refresh:** Allows users to manually retry fetching data.
@@ -120,8 +119,7 @@ import { formatDateTime } from '@/utils/notificationUtils'; // Re-using existing
 - **Back Button:** Navigates to a previous screen (e.g., authenticated dashboard).
 
 ## Functions Involved
-- **`renderItem({ item })`:** Renders an individual contact message card within the `FlatList`. Formats message details and navigates to the detail screen on press.
-- **`handleSearchChange(text)`:** Updates the `searchTerm` state, which is debounced to update `debouncedSearch`.
+- **`renderItem({ item })`:** Renders `ContactCard` component for each contact message item.
 - **`handleStatusFilter(status)`:** Updates the `filterStatus` state.
 - **`onRefresh()`:** Triggers the `refetch` function from the `useGetContactMessages` hook.
 
@@ -131,3 +129,10 @@ import { formatDateTime } from '@/utils/notificationUtils'; // Re-using existing
 - Allow swipe-to-action gestures on message cards for quick management.
 - Integrate push notifications for new contact messages.
 - Add more advanced filtering options (e.g., by date range, sender email).
+
+## Recent Changes
+- **Removed:** Search bar functionality.
+- **Added:** `ContactCard` component with consistent StatusBadge usage.
+- **Added:** `ContactCardSkeleton` for loading states.
+- **Updated:** Badge consistency - status uses `StatusBadge` component.
+- **Updated:** Icons added throughout cards (person, message, access-time) with gold family colors.

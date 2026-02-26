@@ -16,13 +16,14 @@
 ## Imports
 ```tsx
 import { useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, SafeAreaView } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
-import { useGetPaymentById } from '@/tanstack/usePayments';
-import { formatPaymentStatus, getPaymentStatusVariant, formatPaymentMethod, formatPaymentType, formatCurrency } from '@/utils/paymentUtils';
-import { formatDateTimeWithTime } from '@/utils/notificationUtils';
-import type { IPayment } from '@/types/api.types';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useGetPaymentById } from '@/tanstack/usePayments';
+import { formatPaymentMethod, formatCurrency } from '@/utils/paymentUtils';
+import { formatDateTimeWithTime } from '@/utils/notificationUtils';
+import StatusBadge from '@/components/ui/StatusBadge';
+import type { IPayment } from '@/types/api.types';
 ```
 
 ## Context and State Management
@@ -32,10 +33,10 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 ## UI Structure
 - **Safe Area & ScrollView:** Main container for mobile layout.
-- **Header Card:** Payment number, status badge, amount, and payment method.
-- **Details Section:** Payment information (customer, type, date, transaction references).
-- **Appointment Link:** Link to related appointment if payment is for an appointment.
-- **Transaction References:** Display processor references (M-Pesa checkout ID, Paystack reference).
+- **Header Card:** StatusBadge, payment number with icon, amount with icon, and payment method with icon.
+- **Details Section:** Payment information with icons (payment type, date & time, currency).
+- **Processor References:** Display processor references (M-Pesa checkout ID, Paystack reference).
+- **Loading State:** Full-page skeleton loader with `animate-pulse` for loading states.
 
 ## Planned Layout
 ```
@@ -109,14 +110,15 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
   ```
 
 ## Components Used
+- `StatusBadge`: Badge component with icons for payment status (SUCCESS, COMPLETED, PENDING, PROCESSING, FAILED, CANCELLED).
 - Expo Router: `useLocalSearchParams`, `useRouter`, `Stack`.
 - TanStack Query: `useGetPaymentById` hook.
-- Utility Functions: `formatPaymentStatus`, `getPaymentStatusVariant`, `formatPaymentMethod`, `formatPaymentType`, `formatCurrency` from `@/utils/paymentUtils`.
-- Icons: `@expo/vector-icons/MaterialIcons`.
-- Custom classes from `global.css`: `btn-primary`, `btn-secondary`, `badge`, `badge-success`, `badge-error`, `badge-soft`, `alert-error`.
+- Utility Functions: `formatPaymentMethod`, `formatCurrency` from `@/utils/paymentUtils`.
+- Icons: `@expo/vector-icons/MaterialIcons` (receipt, attach-money, payment, info, category, event, currency-exchange).
+- **Skeleton Loader:** Full-page skeleton with `animate-pulse` for loading states (replaces ActivityIndicator).
 
 ## Error Handling
-- **Loading State:** Show `ActivityIndicator` while fetching payment data.
+- **Loading State:** Full-page skeleton loader with `animate-pulse` showing header, details, and processor info placeholders.
 - **Error State:** Display error message with a "Go Back" button if fetch fails.
 - **No Payment Found:** Display error message and link back to payment list.
 
@@ -141,3 +143,10 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - Payment receipt sharing/saving.
 - Refund information if applicable.
 - Detailed transaction timeline.
+
+## Recent Changes
+- **Added:** Full-page skeleton loader with `animate-pulse` for loading states.
+- **Added:** Icons throughout the page (receipt, attach-money, payment, info, category, event, currency-exchange) with gold family colors.
+- **Updated:** Badge consistency - status uses `StatusBadge` component.
+- **Updated:** Improved visual hierarchy with icon circles and colored text.
+- **Updated:** Removed background colors from cards (white/gray backgrounds).

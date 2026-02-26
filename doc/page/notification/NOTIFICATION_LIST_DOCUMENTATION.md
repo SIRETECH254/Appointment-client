@@ -16,52 +16,50 @@
 
 ## Imports
 ```tsx
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, TextInput, ActivityIndicator, Alert, RefreshControl } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState, useCallback, useMemo } from 'react';
+import { View, Text, TouchableOpacity, FlatList, RefreshControl, Alert, ScrollView } from 'react-native';
+import { useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useGetNotifications, useMarkNotificationAsRead, useMarkAllNotificationsAsRead, useDeleteNotification } from '@/tanstack/useNotifications';
-import { formatDateTime, getCategoryBadgeClass, getTypeDisplayName } from '@/utils/notificationUtils';
-import type { INotification } from '@/types/api.types';
+import { useGetNotifications, useMarkAllNotificationsAsRead } from '@/tanstack/useNotifications';
+import NotificationCard from '@/components/ui/NotificationCard';
+import NotificationCardSkeleton from '@/components/ui/NotificationCardSkeleton';
+import type { Notification } from '@/types/api.types';
 ```
 
 ## Context and State Management
 - **TanStack Query:** `useGetNotifications(params)` fetches paginated notification list.
 - **Mutations:** 
-  - `useMarkNotificationAsRead()` handles marking individual notifications as read.
   - `useMarkAllNotificationsAsRead()` handles marking all notifications as read.
-  - `useDeleteNotification()` handles notification deletion.
 - **Local State:**
-  - `searchTerm` - Current search input value.
-  - `filterCategory` - Selected category filter (all/general/appointment/payment).
-  - `currentPage` - Current page number.
+  - `filterCategory` - Selected category filter (all/general/appointment/payment/system/promotional).
+  - `page` - Current page number (default: 1).
 - **Refresh State:** Handled by `onRefresh` for pull-to-refresh.
 
 ## UI Structure
 - **Header:** Title "Notifications" with "Mark All Read" action.
-- **Search Bar:** Integrated at the top of the list.
-- **Category Filter:** Horizontal scrollable chips for filtering.
+- **Category Filter:** Horizontal scrollable chips for filtering (All, Appointment, Payment, General).
 - **List Area:** `FlatList` for efficient scrolling and item rendering.
-- **Notification Card:** Touch-optimized card with badges, subject, and preview.
+- **Notification Card:** Reusable `NotificationCard` component with StatusBadge for category and type, icons, and preview.
+- **Loading State:** Shows 5 `NotificationCardSkeleton` components while loading.
 
 ## Planned Layout
 ```
 ┌──────────────────────────────────────────┐
 │  Notifications             [Mark All Read]│
 ├──────────────────────────────────────────┤
-│  [ 🔍 Search notifications...         ]  │
-├──────────────────────────────────────────┤
 │  [All] [Appointment] [Payment] [General] │
 ├──────────────────────────────────────────┤
 │  ┌────────────────────────────────────┐  │
-│  │ [Badge] Subject             (•) [>] │  │
-│  │ Message preview text...            │  │
-│  │ Type • Jan 15, 2025 10:30 AM       │  │
+│  │ [Category] [Type]          (•)      │  │
+│  │ 📝 Subject                          │  │
+│  │ 💬 Message preview text...          │  │
+│  │ ⏰ Jan 15, 2025                     │  │
 │  └────────────────────────────────────┘  │
 │  ┌────────────────────────────────────┐  │
-│  │ [Badge] Subject                 [>] │  │
-│  │ Message preview text...            │  │
-│  │ Type • Jan 14, 2025 2:15 PM        │  │
+│  │ [Category] [Type]                   │  │
+│  │ 📝 Subject                          │  │
+│  │ 💬 Message preview text...          │  │
+│  │ ⏰ Jan 14, 2025                     │  │
 │  └────────────────────────────────────┘  │
 └──────────────────────────────────────────┘
 ```
@@ -71,19 +69,19 @@ import type { INotification } from '@/types/api.types';
 ┌──────────────────────────────────────────────────┐
 │ ← Back         Notifications      [Mark All Read] │
 ├──────────────────────────────────────────────────┤
-│ 🔍 [ Search notifications...                  ]  │
-├──────────────────────────────────────────────────┤
 │ [All]  [Appointment]  [Payment]  [General]       │
 ├──────────────────────────────────────────────────┤
 │ ┌──────────────────────────────────────────────┐ │
-│ │ [Appointment] Confirmed               🔵 [>] │ │
-│ │ Your appointment for Haircut is confirmed... │ │
-│ │ in_app • Jan 15, 10:30 AM                    │ │
+│ │ [Appointment] [In-App]                🔵      │ │
+│ │ 📝 Appointment Confirmed                     │ │
+│ │ 💬 Your appointment for Haircut is...         │ │
+│ │ ⏰ Jan 15, 2025                               │ │
 │ └──────────────────────────────────────────────┘ │
 │ ┌──────────────────────────────────────────────┐ │
-│ │ [Payment] Successful                     [>] │ │
-│ │ Your payment of $50.00 was successful...     │ │
-│ │ email • Jan 14, 02:15 PM                     │ │
+│ │ [Payment] [Email]                             │ │
+│ │ 📝 Payment Successful                         │ │
+│ │ 💬 Your payment of $50.00 was...             │ │
+│ │ ⏰ Jan 14, 2025                                │ │
 │ └──────────────────────────────────────────────┘ │
 │                                                  │
 │          (Pull to Refresh)                       │
@@ -91,9 +89,8 @@ import type { INotification } from '@/types/api.types';
 ```
 
 ## Form Inputs
-- **Search Input:** Native `TextInput` with search icon.
-- **Category Chips:** `TouchableOpacity` items in a horizontal `ScrollView`.
-- **Items Per Page:** (Not applicable for infinite scroll/standard mobile list, but could be added in settings).
+- **Category Chips:** `TouchableOpacity` items in a horizontal `ScrollView` for filtering by category.
+- **Items Per Page:** Default limit of 20 notifications per page.
 
 ## API Integration
 - **Endpoint:** `GET /api/notifications` with query parameters.
@@ -101,14 +98,16 @@ import type { INotification } from '@/types/api.types';
 - **Response:** Paginated notification data.
 
 ## Components Used
+- `NotificationCard`: Reusable card component displaying notification with StatusBadge for category and type, icons, and preview.
+- `NotificationCardSkeleton`: Loading skeleton component (shows 5 instances while loading).
+- `StatusBadge`: Badge component with icons for category (appointment, payment, system, promotional, general) and type (email, sms, push, in_app).
 - `FlatList`: Mobile-native list rendering.
-- `MaterialIcons`: Icon library.
+- `MaterialIcons`: Icon library for empty state.
 - `RefreshControl`: Pull-to-refresh functionality.
-- Custom Classes: `badge-soft`, `btn-primary`, etc., from `global.css`.
 
 ## Error Handling
-- **Loading:** `ActivityIndicator` or Skeleton cards.
-- **Empty State:** Friendly message when no notifications match filters.
+- **Loading:** Shows 5 `NotificationCardSkeleton` components with `animate-pulse` effect.
+- **Empty State:** Friendly message with icon when no notifications match filters.
 - **Error:** Alert or inline message with retry button.
 
 ## Navigation Flow
@@ -117,12 +116,20 @@ import type { INotification } from '@/types/api.types';
 - **Back Button:** Navigates to Dashboard/Previous screen.
 
 ## Functions Involved
-- `handleDelete`: Uses `Alert.alert` for confirmation.
-- `handleMarkAsRead`: Mutation for single item.
-- `handleMarkAllAsRead`: Mutation for all.
+- `handleMarkAllAsRead`: Uses `Alert.alert` for confirmation, then mutation to mark all as read.
 - `onRefresh`: Refetches data via TanStack Query.
+- `renderItem`: Renders `NotificationCard` component for each notification item.
 
 ## Future Enhancements
-- Swipe-to-delete actions.
 - Push notification deep linking.
 - Real-time updates via WebSockets.
+- Search functionality (currently removed).
+- Swipe-to-delete actions (delete button removed from cards).
+
+## Recent Changes
+- **Removed:** Search bar functionality.
+- **Removed:** Delete button from notification cards.
+- **Added:** `NotificationCard` component with consistent StatusBadge usage.
+- **Added:** `NotificationCardSkeleton` for loading states (5 instances).
+- **Updated:** Badge consistency - both category and type use `StatusBadge` component.
+- **Updated:** Icons added throughout cards (subject, message, date) with gold family colors.

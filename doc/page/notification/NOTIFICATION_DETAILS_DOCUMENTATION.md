@@ -16,13 +16,13 @@
 
 ## Imports
 ```tsx
-import { useCallback, useMemo } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, SafeAreaView } from 'react-native';
+import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useGetNotification, useMarkNotificationAsRead, useDeleteNotification } from '@/tanstack/useNotifications';
-import { formatDateTimeWithTime, getCategoryBadgeClass, getTypeDisplayName } from '@/utils/notificationUtils';
-import type { INotification } from '@/types/api.types';
+import { formatDateTimeWithTime, getTypeDisplayName } from '@/utils/notificationUtils';
+import StatusBadge from '@/components/ui/StatusBadge';
 ```
 
 ## Context and State Management
@@ -33,30 +33,31 @@ import type { INotification } from '@/types/api.types';
   - `useDeleteNotification()` deletes item and navigates back.
 
 ## UI Structure
-- **Top Bar:** Back button and page title.
+- **Top Bar:** Back button and page title (delete button removed from header).
 - **Detail Container:** Scrollable view containing all notification info.
-- **Main Info:** Large subject, badges for category and type.
-- **Body:** Full message text.
-- **Metadata Section:** Timestamps and technical details.
-- **Actions Bar:** Fixed bottom or floating action buttons for Delete/Mark Read.
+- **Main Info:** Large subject with icon, StatusBadge for category and type.
+- **Body:** Full message text with icon header.
+- **Metadata Section:** Timestamps and technical details with icons.
+- **Actions Bar:** Fixed bottom action button for Mark as Read (only shown if unread).
 
 ## Planned Layout
 ```
 ┌──────────────────────────────────────────┐
-│ ← Notification Details            [🗑]    │
+│ ← Details                                  │
 ├──────────────────────────────────────────┤
 │                                          │
 │  [Appointment Badge] [In-App Badge]      │
 │                                          │
-│  Appointment Confirmed                   │
+│  📝 Appointment Confirmed                │
 │                                          │
+│  💬 Message                              │
 │  Your appointment for Haircut is         │
 │  confirmed on Jan 15, 2025 at 10:30 AM.  │
 │                                          │
 │  --------------------------------------  │
 │                                          │
-│  Sent: Jan 15, 2025 10:30 AM             │
-│  Read: Jan 15, 2025 10:35 AM             │
+│  ⏰ Sent: Jan 15, 2025 10:30 AM          │
+│  ✅ Read: Jan 15, 2025 10:35 AM          │
 │                                          │
 │  [ Mark as Read ]                        │
 └──────────────────────────────────────────┘
@@ -65,23 +66,25 @@ import type { INotification } from '@/types/api.types';
 ## Sketch Wireframe
 ```
 ┌──────────────────────────────────────────────────┐
-│ ← Details                                    [🗑] │
+│ ← Details                                          │
 ├──────────────────────────────────────────────────┤
 │                                                  │
 │ [Appointment]  [In-App]                          │
 │                                                  │
-│ Appointment Confirmed                            │
+│ 📝 Appointment Confirmed                         │
 │                                                  │
+│ 💬 Message                                       │
 │ Your appointment for Haircut is confirmed on     │
 │ January 15, 2025 at 10:30 AM.                    │
 │                                                  │
 │ ──────────────────────────────────────────────── │
 │                                                  │
-│ Metadata:                                        │
-│   appointmentId: "abc123"                        │
+│ ⏰ Sent: Jan 15, 2025 10:30 AM                  │
 │                                                  │
-│ Created: Jan 15, 2025 10:30 AM                   │
-│ Read: —                                          │
+│ ✅ Status: Read                                   │
+│                                                  │
+│ ℹ️ Related Information:                           │
+│   appointmentId: "abc123"                        │
 │                                                  │
 │                                                  │
 │            [ Mark as Read Button ]               │
@@ -89,8 +92,7 @@ import type { INotification } from '@/types/api.types';
 ```
 
 ## Form Inputs
-- **Mark as Read Button:** Large action button at the bottom.
-- **Delete Button:** Icon button in the top header.
+- **Mark as Read Button:** Large action button at the bottom (only shown if notification is unread).
 - **Action Buttons:** Dynamic buttons if bidirectional actions are present.
 
 ## API Integration
@@ -99,13 +101,15 @@ import type { INotification } from '@/types/api.types';
 - **Delete:** `DELETE /api/notifications/:id`.
 
 ## Components Used
+- `StatusBadge`: Badge component with icons for category and type badges.
 - `ScrollView`: To handle long messages.
-- `MaterialIcons`: For actions.
-- `ActivityIndicator`: For loading states.
+- `MaterialIcons`: For icons throughout (subject, message, schedule, done-all, info, label).
+- **Skeleton Loader:** Full-page skeleton with `animate-pulse` for loading states (replaces ActivityIndicator).
 
 ## Error Handling
-- **Alerts:** For delete confirmation and error reporting.
-- **Fallback UI:** Shown if the notification is not found.
+- **Loading State:** Full-page skeleton loader with `animate-pulse` showing badges, subject, message, and metadata placeholders.
+- **Alerts:** For error reporting.
+- **Fallback UI:** Shown if the notification is not found with error icon and "Go Back" button.
 
 ## Navigation Flow
 - **Route:** `/(authenticated)/notifications/[id]`
@@ -113,11 +117,18 @@ import type { INotification } from '@/types/api.types';
 - **Delete Success:** Redirects to List view.
 
 ## Functions Involved
-- `handleMarkAsRead`: Updates local cache and server.
-- `handleDelete`: Triggers native `Alert` for confirmation.
+- `handleMarkAsRead`: Updates local cache and server (automatically called when notification is opened if unread).
+- `handleDelete`: Removed from detail page (delete functionality removed).
 - `handleActionClick`: Handles custom buttons from notification actions.
 
 ## Future Enhancements
 - Support for attachments (images/PDFs).
 - Direct reply interface.
 - Rich text rendering for messages.
+
+## Recent Changes
+- **Removed:** Delete button from header.
+- **Added:** Full-page skeleton loader with `animate-pulse` for loading states.
+- **Added:** Icons throughout the page (subject, message, schedule, done-all, info, label) with gold family colors.
+- **Updated:** Badge consistency - both category and type use `StatusBadge` component.
+- **Updated:** Improved visual hierarchy with icon circles and colored text.

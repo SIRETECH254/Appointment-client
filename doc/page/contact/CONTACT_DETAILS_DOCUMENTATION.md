@@ -17,11 +17,12 @@
 ## Imports
 ```tsx
 import React, { useCallback } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert, SafeAreaView } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, Alert, SafeAreaView, Linking } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useGetContactMessageDetails, useMarkContactMessageAsRead, useArchiveContactMessage } from '@/tanstack/useContactMessages'; // Placeholder hooks
-import { formatDateTimeWithTime } from '@/utils/notificationUtils'; // Re-using existing date formatter
+import { useGetContactMessage, useMarkContactMessageAsRead } from '@/tanstack/useContactMessages';
+import { formatDateTimeWithTime } from '@/utils/notificationUtils';
+import StatusBadge from '@/components/ui/StatusBadge';
 ```
 
 ## Context and State Management
@@ -33,29 +34,31 @@ import { formatDateTimeWithTime } from '@/utils/notificationUtils'; // Re-using 
 
 ## UI Structure
 - **SafeAreaView & ScrollView:** Main container for comfortable viewing on mobile devices.
-- **Header:** Displays the screen title ("Message Details") and action icons (e.g., Archive, Mark as Unread).
-- **Message Header:** Displays sender's name, email, and subject.
-- **Message Body:** Displays the full text of the contact message.
-- **Metadata Section:** Shows details like phone number, submission date, and current status (e.g., New, Read).
-- **Action Footer:** Contextual buttons based on message status (e.g., "Mark as Read", "Reply", "Archive").
+- **Header:** Displays the screen title ("Message Details").
+- **Sender Info Card:** Displays sender's name with icon, email with icon, and subject with icon.
+- **Message Body Card:** Displays the full text of the contact message with icon header.
+- **Metadata Section:** Shows details like phone number with icon, submission date with icon, and StatusBadge for current status.
+- **Action Footer:** Contextual button "Mark as Read" (only shown if message is unread).
+- **Loading State:** Full-page skeleton loader with `animate-pulse` for loading states.
 
 ## Planned Layout
 ```
 ┌────────────────────────────────────────────┐
-│ < Back        Message Details      [🗑]    │
+│ < Back        Message Details               │
 ├────────────────────────────────────────────┤
-│ From: John Doe <john@example.com>          │
-│ Subject: Inquiry about Services            │
+│ 👤 John Doe                                 │
+│ 📧 john@example.com                        │
+│ 📝 Subject: Inquiry about Services         │
 ├────────────────────────────────────────────┤
-│ Message:                                   │
+│ 💬 Message                                  │
 │ Lorem ipsum dolor sit amet, consectetur    │
 │ adipiscing elit. ...                       │
 ├────────────────────────────────────────────┤
-│ Phone: +254 712 345 678                    │
-│ Submitted On: Feb 20, 2026 10:30 AM        │
-│ Status: New                                │
+│ 📞 Phone: +254 712 345 678                  │
+│ ⏰ Submitted On: Feb 20, 2026 10:30 AM     │
+│ 🏷️ Status: [New]                            │
 ├────────────────────────────────────────────┤
-│ [Mark as Read] [Archive]                   │
+│ [Mark as Read]                             │
 └────────────────────────────────────────────┘
 ```
 
@@ -96,15 +99,17 @@ import { formatDateTimeWithTime } from '@/utils/notificationUtils'; // Re-using 
 - **Hooks:** `useGetContactMessageDetails(id)`, `useMarkContactMessageAsRead()`, `useArchiveContactMessage()`.
 
 ## Components Used
+- `StatusBadge`: Badge component with icons for contact status (NEW, READ, REPLIED, ARCHIVED).
 - Expo Router: `useLocalSearchParams`, `useRouter`, `Stack`.
-- React Native: `View`, `Text`, `ScrollView`, `TouchableOpacity`, `ActivityIndicator`, `Alert`, `SafeAreaView`.
-- Icons: `MaterialIcons` from `@expo/vector-icons`.
-- Utility Functions: `formatDateTimeWithTime` from `@/utils/notificationUtils` (or similar for messages).
+- React Native: `View`, `Text`, `ScrollView`, `TouchableOpacity`, `Alert`, `SafeAreaView`, `Linking`.
+- Icons: `MaterialIcons` from `@expo/vector-icons` (person, email, subject, message, phone, flag, schedule).
+- **Skeleton Loader:** Full-page skeleton with `animate-pulse` for loading states (replaces ActivityIndicator).
+- Utility Functions: `formatDateTimeWithTime` from `@/utils/notificationUtils`.
 
 ## Error Handling
-- **Loading State:** Displays an `ActivityIndicator` while message details are being fetched.
+- **Loading State:** Full-page skeleton loader with `animate-pulse` showing sender info, message body, and metadata placeholders.
 - **Error State:** Displays a user-friendly error message if fetching fails, with an option to go back.
-- **Action Confirmation:** `Alert.alert` for confirming destructive actions (e.g., Delete, Archive).
+- **Action Confirmation:** `Alert.alert` for error reporting.
 
 ## Navigation Flow
 - **Route:** `/(authenticated)/contact/[id]`
@@ -122,3 +127,10 @@ import { formatDateTimeWithTime } from '@/utils/notificationUtils'; // Re-using 
 - Allow categorization or tagging of messages for better organization.
 - Display attachments if the contact form supports them.
 - Link sender's email/phone to their user profile if they are registered users.
+
+## Recent Changes
+- **Added:** Full-page skeleton loader with `animate-pulse` for loading states.
+- **Added:** Icons throughout the page (person, email, subject, message, phone, flag, schedule) with gold family colors.
+- **Updated:** Badge consistency - status uses `StatusBadge` component.
+- **Updated:** Improved visual hierarchy with icon circles and colored text.
+- **Updated:** Removed background colors from cards (white/gray backgrounds).
