@@ -3,7 +3,7 @@ import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import Navbar from '../../components/layout/Navbar';
-import Footer from '../../components/layout/Footer';
+// import Footer from '../../components/layout/Footer';
 import Sidebar from '../../components/layout/Sidebar';
 
 export default function AuthenticatedLayout() {
@@ -53,7 +53,7 @@ export default function AuthenticatedLayout() {
           <Stack.Screen name="contact/[id]" options={{ headerShown: false }} />
         </Stack>
       </View>
-      <Footer />
+      {/* <Footer /> */}
     </View>
   );
 }

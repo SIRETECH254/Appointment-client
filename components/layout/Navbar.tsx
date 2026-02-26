@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
+import { Image } from 'expo-image';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useAuth } from '../../contexts/AuthContext';
 import { useGetUnreadNotificationCount } from '../../tanstack/useNotifications';
@@ -68,7 +69,26 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
   };
 
   return (
-    <View className="sticky top-0 z-40 border-b border-gray-200 bg-white">
+    <>
+      {/* Full-screen overlay to close dropdown when clicking outside */}
+      {isMenuOpen && (
+        <TouchableOpacity
+          onPress={() => setIsMenuOpen(false)}
+          className="absolute inset-0 z-30"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: Dimensions.get('window').width,
+            height: Dimensions.get('window').height,
+          }}
+          accessibilityLabel="Close menu"
+          activeOpacity={1}
+        />
+      )}
+      <View className="sticky top-0 z-40 border-b border-gray-200 bg-white">
       <View className="flex-row items-center justify-between px-4 py-3 lg:px-6">
         {/* Left section: hamburger + logo */}
         <View className="flex-row items-center gap-3">
@@ -153,75 +173,70 @@ const Navbar = ({ isSidebarOpen, onToggleSidebar }: NavbarProps) => {
                 <TouchableOpacity
                   onPress={() => setIsMenuOpen((prev) => !prev)}
                   className="flex-row items-center gap-2 rounded-full bg-gray-100 px-2 py-1.5"
-                  accessibilityLabel="Account menu">
-                  <View className="h-9 w-9 items-center justify-center rounded-full bg-brand-primary">
-                    <Text className="font-inter text-sm font-semibold text-white">{userInitials}</Text>
-                  </View>
-                  {isLargeScreen && (
-                    <View className="hidden flex-col lg:flex">
-                      <Text className="font-inter text-sm font-semibold text-slate-900">
-                        {user ? `${user.firstName} ${user.lastName}` : 'User'}
-                      </Text>
-                      <Text className="font-inter text-xs text-slate-500">
-                        {user?.email ?? 'user@example.com'}
-                      </Text>
-                    </View>
-                  )}
-                  <MaterialIcons name="arrow-drop-down" size={20} color="#4B5563" />
+                  accessibilityLabel="Account menu"
+                >
+                  <View className="h-9 w-9 items-center justify-center rounded-full bg-brand-primary overflow-hidden">
+                    {user?.avatar ? (
+                      <Image 
+                        source={{ uri: user.avatar }} 
+                        className="h-full w-full"
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <Text className="font-inter text-sm font-semibold text-white">{userInitials}</Text>
+                    )}
+                  </View> 
                 </TouchableOpacity>
 
                 {/* Dropdown actions */}
                 {isMenuOpen && (
-                  <>
-                    <View className="absolute right-0 z-40 mt-3 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
-                      <TouchableOpacity
-                        onPress={handleProfile}
-                        className="flex-row items-center gap-2 rounded-lg px-3 py-2">
-                        <MaterialIcons name="person" size={18} color="#374151" />
-                        <Text className="font-inter text-sm text-gray-700">View Profile</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={handleAppointments}
-                        className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
-                        <MaterialIcons name="calendar-today" size={18} color="#374151" />
-                        <Text className="font-inter text-sm text-gray-700">My Appointments</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setIsMenuOpen(false);
-                          router.push('/(authenticated)/payments');
-                        }}
-                        className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
-                        <MaterialIcons name="payments" size={18} color="#374151" />
-                        <Text className="font-inter text-sm text-gray-700">View Payments</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={handleLogout}
-                        className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
-                        <MaterialIcons name="logout" size={18} color="#DC2626" />
-                        <Text className="font-inter text-sm text-red-600">Logout</Text>
-                      </TouchableOpacity>
-                    </View>
-                    {/* Click-away overlay to close the menu */}
+                  <View className="absolute right-0 z-40 mt-3 w-56 rounded-xl border border-gray-200 bg-white p-3 shadow-lg">
                     <TouchableOpacity
-                      onPress={() => setIsMenuOpen(false)}
-                      className="absolute inset-0 z-30"
-                      accessibilityLabel="Close menu"
-                    />
-                  </>
+                      onPress={handleProfile}
+                      className="flex-row items-center gap-2 rounded-lg px-3 py-2">
+                      <MaterialIcons name="person" size={18} color="#374151" />
+                      <Text className="font-inter text-sm text-gray-700">View Profile</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleAppointments}
+                      className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
+                      <MaterialIcons name="calendar-today" size={18} color="#374151" />
+                      <Text className="font-inter text-sm text-gray-700">My Appointments</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        setIsMenuOpen(false);
+                        router.push('/(authenticated)/payments');
+                      }}
+                      className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
+                      <MaterialIcons name="payments" size={18} color="#374151" />
+                      <Text className="font-inter text-sm text-gray-700">View Payments</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handleLogout}
+                      className="mt-2 flex-row items-center gap-2 rounded-lg px-3 py-2">
+                      <MaterialIcons name="logout" size={18} color="#DC2626" />
+                      <Text className="font-inter text-sm text-red-600">Logout</Text>
+                    </TouchableOpacity>
+
+                  </View>
                 )}
               </View>
             </>
           ) : (
             <TouchableOpacity
               onPress={handleLogin}
-              className="btn-primary btn-sm">
+              className="btn-primary btn-sm rounded-full">
               <Text className="font-inter text-sm font-semibold text-white">Login</Text>
             </TouchableOpacity>
           )}
         </View>
       </View>
     </View>
+    </>
   );
 };
 

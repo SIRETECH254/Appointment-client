@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { Stack } from 'expo-router';
 import Navbar from '../../components/layout/Navbar';
-import Footer from '../../components/layout/Footer';
+// import Footer from '../../components/layout/Footer';
 import Sidebar from '../../components/layout/Sidebar';
 
 export default function PublicLayout() {
@@ -27,7 +27,7 @@ export default function PublicLayout() {
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         </Stack>
       </View>
-      <Footer />
+      {/* <Footer /> */}
     </View>
   );
 }
