@@ -130,9 +130,10 @@ import type { IPayment } from '@/types/api.types';
 - **Back Button:** Navigate to Profile or Home.
 
 ## Functions Involved
-- **`formatPaymentStatus`** — Formats status for display.
-- **`getPaymentStatusVariant`** — Maps status to color classes.
-- **`formatCurrency`** — Formats amount with currency symbol.
+- **`renderItem({ item })`:** Renders `PaymentCard` component for each payment item.
+- **`handleStatusFilter(status)`:** Updates the `filterStatus` state when a filter chip is pressed.
+- **`onRefresh()`:** Triggers the `refetch` function from the `useGetMyPayments` hook for pull-to-refresh.
+- **`useMemo` for params:** Memoizes the query parameters object to prevent unnecessary re-renders.
 
 ## Implementation Details
 - **FlatList Optimization:** Uses `keyExtractor` and `renderItem`.

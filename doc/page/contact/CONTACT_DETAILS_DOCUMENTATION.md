@@ -117,9 +117,11 @@ import StatusBadge from '@/components/ui/StatusBadge';
 - **Action Triggers:** Actions like Archive or Mark as Read may navigate back to the list or simply update the UI.
 
 ## Functions Involved
-- **`handleMarkAsRead()`:** Calls the `useMarkContactMessageAsRead` mutation.
-- **`handleArchive()`:** Calls the `useArchiveContactMessage` mutation, potentially navigating back to the list.
-- **`handleReply()`:** Uses `Linking.openURL` to open an email client with pre-filled sender's email.
+- **`handleMarkAsRead()`:** Marks the contact message as read using `useUpdateContactMessageStatus` mutation (only if status is 'NEW').
+- **`handleArchive()`:** Archives the contact message using `useUpdateContactMessageStatus` mutation after user confirmation via Alert, then navigates back to list.
+- **`useEffect` for auto-mark:** Automatically marks message as read when details screen is opened if message status is 'NEW'.
+- **`formatDateTimeWithTime()`:** Formats the message creation timestamp for display.
+- **`Linking.openURL()`:** Opens phone dialer when phone number is tapped (using `tel:` protocol).
 
 ## Future Enhancements
 - Implement a dedicated reply interface within the app rather than opening an email client.

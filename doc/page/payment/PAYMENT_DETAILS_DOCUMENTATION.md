@@ -128,10 +128,9 @@ import type { IPayment } from '@/types/api.types';
 - **Back Button:** Navigate back to `/(authenticated)/payments` (payment history).
 
 ## Functions Involved
-- **`formatPaymentStatus`** — Formats payment status for display.
-- **`formatPaymentMethod`** — Formats payment method for display.
-- **`formatPaymentType`** — Formats payment type for display.
-- **`formatCurrency`** — Formats currency amount for display.
+- **`formatPaymentMethod()`** — Formats payment method (MPESA, PAYSTACK, etc.) for display.
+- **`formatCurrency()`** — Formats payment amount with currency symbol for display.
+- **`formatDateTimeWithTime()`** — Formats payment creation timestamp with time for display.
 
 ## Implementation Details
 - **Native Components:** Using `View`, `Text`, and `ScrollView` for layout.

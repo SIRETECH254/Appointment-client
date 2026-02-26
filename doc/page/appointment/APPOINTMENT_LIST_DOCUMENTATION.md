@@ -125,7 +125,13 @@ import type { IAppointment } from '@/types/api.types';
 ## Navigation Flow
 - Route: `/appointment/index`.
 - **Tap Card:** Navigate to `/appointment/[id]`.
-- **Floating Action Button:** Navigate to `/appointment/select-service` to start booking.
+- **Floating Action Button:** Navigate to `/appointment/create` to start booking.
+
+## Functions Involved
+- **`renderItem({ item })`:** Renders `AppointmentCard` component for each appointment item.
+- **`handleStatusFilter(status)`:** Updates the `filterStatus` state when a filter chip is pressed.
+- **`onRefresh()`:** Triggers the `refetch` function from the `useGetMyAppointments` hook for pull-to-refresh.
+- **`useMemo` for params:** Memoizes the query parameters object to prevent unnecessary re-renders.
 
 ## Implementation Details
 - **FlatList Optimization:** Uses `keyExtractor` and `renderItem` for performance.

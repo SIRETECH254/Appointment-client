@@ -35,7 +35,8 @@ import type { IContact } from '@/types/api.types';
 
 ## UI Structure
 - **Header:** Displays the screen title "Contact Messages".
-- **Filter Chips:** A horizontal `ScrollView` containing `TouchableOpacity` chips for filtering messages by status (e.g., "All", "New", "Read", "Archived").
+- **Search Bar:** A `TextInput` with search icon for filtering messages by keywords (sender name or subject).
+- **Filter Chips:** A horizontal `ScrollView` containing `TouchableOpacity` chips for filtering messages by status (e.g., "All", "New", "Read", "Replied", "Archived").
 - **Message List:** A `FlatList` component to efficiently render the contact messages.
 - **Contact Card:** Reusable `ContactCard` component displaying sender name with icon, subject, message preview with icon, date with icon, and StatusBadge for status.
 - **Empty State:** A component to display when no messages are found after filtering or if the list is empty.
@@ -119,9 +120,11 @@ import type { IContact } from '@/types/api.types';
 - **Back Button:** Navigates to a previous screen (e.g., authenticated dashboard).
 
 ## Functions Involved
-- **`renderItem({ item })`:** Renders `ContactCard` component for each contact message item.
-- **`handleStatusFilter(status)`:** Updates the `filterStatus` state.
-- **`onRefresh()`:** Triggers the `refetch` function from the `useGetContactMessages` hook.
+- **`renderItem({ item })`:** Renders `ContactCard` component for each contact message item (memoized with `useCallback`).
+- **`handleStatusFilter(status)`:** Updates the `filterStatus` state when a filter chip is pressed.
+- **`useEffect` for debounce:** Debounces the search input to avoid excessive API calls (500ms delay).
+- **`useMemo` for params:** Memoizes the query parameters object to prevent unnecessary re-renders.
+- **`onRefresh()`:** Triggers the `refetch` function from the `useGetAllContactMessages` hook for pull-to-refresh.
 
 ## Future Enhancements
 - Implement infinite scrolling for `FlatList` to load more messages as the user scrolls.
@@ -131,8 +134,8 @@ import type { IContact } from '@/types/api.types';
 - Add more advanced filtering options (e.g., by date range, sender email).
 
 ## Recent Changes
-- **Removed:** Search bar functionality.
 - **Added:** `ContactCard` component with consistent StatusBadge usage.
 - **Added:** `ContactCardSkeleton` for loading states.
 - **Updated:** Badge consistency - status uses `StatusBadge` component.
 - **Updated:** Icons added throughout cards (person, message, access-time) with gold family colors.
+- **Updated:** Search functionality with debouncing (500ms delay) to reduce API calls.

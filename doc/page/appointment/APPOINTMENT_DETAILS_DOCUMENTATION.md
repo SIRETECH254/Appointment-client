@@ -144,21 +144,13 @@ import type { IAppointment } from '@/types/api.types';
 - **Back Button:** Use `router.back()`.
 
 ## Functions Involved
-- **`formatAppointmentDateTime`** — Formats appointment date and time for mobile display.
-- **`canRescheduleAppointment`** — Checks if appointment can be rescheduled.
-- **`handleCancel`** — Uses `Alert.alert` for confirmation.
-  ```tsx
-  const handleCancel = () => {
-    Alert.alert(
-      "Cancel Appointment",
-      "Are you sure you want to cancel this appointment?",
-      [
-        { text: "No", style: "cancel" },
-        { text: "Yes, Cancel", onPress: executeCancel, style: 'destructive' }
-      ]
-    );
-  };
-  ```
+- **`handleCancel()`** — Uses `Alert.alert` for confirmation, then calls `useCancelAppointment` mutation to cancel the appointment.
+- **`formatAppointmentDateTime()`** — Formats appointment date and time for mobile display.
+- **`formatCurrency()`** — Formats booking fee and remaining amount with currency symbol.
+- **`canRescheduleAppointment()`** — Checks if appointment can be rescheduled based on status and time constraints.
+- **`canCancelAppointment()`** — Checks if appointment can be cancelled based on status and time constraints.
+- **`isAppointmentPending()`** — Utility function to check if appointment status is PENDING.
+- **`isAppointmentConfirmed()`** — Utility function to check if appointment status is CONFIRMED.
 
 ## Implementation Details
 - **Native Components:** Using `View`, `Text`, and `ScrollView` for layout.
