@@ -287,3 +287,20 @@ export interface SubmitContactPayload {
   subject: string;
   message: string;
 }
+
+// Newsletter Types
+export interface SubscribeNewsletterPayload {
+  email: string;
+}
+
+export interface NewsletterSubscriber {
+  _id: string;
+  email: string;
+  status: 'SUBSCRIBED' | 'UNSUBSCRIBED';
+  subscribedAt: string;
+  unsubscribeToken?: string;
+  source?: 'WEBSITE' | 'MOBILE_APP';
+  userId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

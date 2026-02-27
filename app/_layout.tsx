@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { PaperProvider } from 'react-native-paper';
 import { en, registerTranslation } from 'react-native-paper-dates';
+import Toast from 'react-native-toast-message';
 
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
@@ -62,6 +63,7 @@ export default function RootLayout() {
         ) : (
           appShell
         )}
+        <Toast />
       </Provider>
     </QueryClientProvider>
   );

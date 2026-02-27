@@ -33,6 +33,8 @@ import type {
   SubmitContactPayload,
   GetContactMessagesParams,
   IContact,
+  // Newsletter types
+  SubscribeNewsletterPayload,
   // Common types
   PaginationParams,
 } from '../types/api.types';
@@ -202,6 +204,15 @@ export const contactAPI = {
 
   // Admin endpoint: Update a contact message (e.g., status)
   updateContactMessage: (contactId: string, data: Partial<IContact>) => api.patch(`/api/contact/${contactId}`, data),
+};
+
+// ============================================
+// Newsletter API
+// ============================================
+export const newsletterAPI = {
+  // Subscribe to newsletter
+  // If user is authenticated, the token in headers will automatically attach userId
+  subscribe: (subscriptionData: SubscribeNewsletterPayload) => api.post('/api/newsletter/subscribe', subscriptionData),
 };
 
 

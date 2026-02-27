@@ -1,9 +1,18 @@
-import { ImageBackground, Text, View, useWindowDimensions, TouchableOpacity, ScrollView, TextInput } from 'react-native';
+import { ImageBackground, Text, View, useWindowDimensions, TouchableOpacity, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import Toast from 'react-native-toast-message';
 import { Link } from 'expo-router'; // Import Link
 import MaterialIcons from '@expo/vector-icons/MaterialIcons'; // Import MaterialIcons for icons
+import { useState, useCallback, useEffect } from 'react';
 
 // Import Tanstack Query hooks
 import { useGetAllServices } from '../../tanstack/useServices'; 
+import { useSubscribeNewsletter } from '../../tanstack/useNewsletter';
+
+// Import Auth context for autofill
+import { useAuth } from '../../contexts/AuthContext';
+
+// Import validation utility
+import { validateEmail } from '../../utils/paymentUtils'; 
 
 // Import custom UI components
 import ServiceCard from '../../components/ui/ServiceCard'; 
@@ -18,6 +27,60 @@ export default function HomePage() {
   const { width, height } = useWindowDimensions();
   // Fetch services data, loading state, and error using Tanstack Query
   const { data: services, isLoading, error } = useGetAllServices(); 
+
+  // Newsletter subscription state
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [newsletterError, setNewsletterError] = useState('');
+
+  // Get user data for autofill
+  const { user, isAuthenticated } = useAuth();
+
+  // Newsletter subscription mutation
+  const subscribeMutation = useSubscribeNewsletter();
+
+  // Autofill email if user is authenticated
+  useEffect(() => {
+    if (isAuthenticated && user?.email && !newsletterEmail) {
+      setNewsletterEmail(user.email);
+    }
+  }, [isAuthenticated, user]);
+
+  // Handle newsletter subscription
+  const handleNewsletterSubscribe = useCallback(async () => {
+    // Clear previous errors
+    setNewsletterError('');
+
+    // Validate email
+    if (!newsletterEmail) {
+      setNewsletterError('Email is required');
+      return;
+    }
+
+    const emailValidation = validateEmail(newsletterEmail);
+    if (!emailValidation.isValid) {
+      setNewsletterError(emailValidation.error || 'Invalid email address');
+      return;
+    }
+
+    try {
+      await subscribeMutation.mutateAsync({
+        email: emailValidation.normalized,
+      });
+      
+      // Success - show toast and clear email
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'You have been successfully subscribed to our newsletter.',
+        position: 'top',
+      });
+      setNewsletterEmail('');
+    } catch (error: any) {
+      // Error handled by mutation, but show user-friendly message
+      const errorMessage = error.response?.data?.message || 'Failed to subscribe. Please try again.';
+      setNewsletterError(errorMessage);
+    }
+  }, [newsletterEmail, subscribeMutation]); 
 
   // Dynamically calculate hero section height based on screen width
   const getHeroHeight = () => {
@@ -184,15 +247,37 @@ export default function HomePage() {
         <Text className="text-gray-800 text-lg text-center max-w-xl">
           Subscribe to our newsletter for exclusive offers, new services, and wellness tips delivered straight to your inbox.
         </Text>
-        <View className="w-full max-w-md flex-row items-center bg-white rounded-full shadow-lg">
+        <View className="w-full max-w-md">
+          <View className="flex-row items-center bg-white rounded-full shadow-lg">
           <TextInput
+              value={newsletterEmail}
+              onChangeText={(text) => {
+                setNewsletterEmail(text);
+                setNewsletterError(''); // Clear error when user types
+              }}
             placeholder="Enter your email"
             keyboardType="email-address"
-            className="flex-1 pl-3 text-base text-gray-800 border-white focus:border-brand-primary rounded-l-full p-1 "
-          />
-          <TouchableOpacity className="bg-brand-primary py-2 px-2 rounded-full flex-shrink">
+              autoCapitalize="none"
+              className="flex-1 pl-3 text-base text-gray-800 border-white focus:border-brand-primary rounded-l-full p-1"
+              editable={!subscribeMutation.isPending}
+            />
+            <TouchableOpacity
+              onPress={handleNewsletterSubscribe}
+              disabled={subscribeMutation.isPending || !newsletterEmail}
+              className={`bg-brand-primary py-2 px-2 rounded-full flex-shrink ${subscribeMutation.isPending || !newsletterEmail ? 'opacity-50' : ''}`}
+            >
+              {subscribeMutation.isPending ? (
+                <ActivityIndicator color="white" size="small" />
+              ) : (
             <Text className="text-white font-semibold text-base whitespace-nowrap">Subscribe</Text>
+              )}
           </TouchableOpacity>
+          </View>
+          {newsletterError ? (
+            <View className="mt-2 p-3 bg-red-50 border border-red-200 rounded-xl w-full">
+              <Text className="text-sm text-red-700 font-medium text-center">{newsletterError}</Text>
+            </View>
+          ) : null}
         </View>
       </View>
 

@@ -21,5 +21,8 @@ export * from './useNotifications';
 // Contact hooks
 export * from './useContact';
 
+// Newsletter hooks
+export * from './useNewsletter';
+
 // Dashboard hooks
 export * from './useDashboard';
