@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 import { contactAPI } from '../api';
 import type { GetContactMessagesParams, IContact, SubmitContactPayload } from '../types/api.types';
 
@@ -7,6 +8,7 @@ const DEFAULT_GC_TIME = 1000 * 60 * 10;
 
 // Submit contact message (existing hook)
 export const useSubmitContactMessage = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (messageData: SubmitContactPayload) => {
       const response = await contactAPI.submitMessage(messageData);
@@ -14,7 +16,13 @@ export const useSubmitContactMessage = () => {
     },
     onSuccess: () => {
       // Invalidate the contact messages list to show the new submission
-      useQueryClient().invalidateQueries({ queryKey: ['contactMessages'] });
+      queryClient.invalidateQueries({ queryKey: ['contactMessages'] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Message sent successfully',
+        position: 'top',
+      });
       console.log('Contact message submitted successfully');
     },
     onError: (error: any) => {

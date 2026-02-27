@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Toast from 'react-native-toast-message';
 import { useGetAllServices } from '@/tanstack/useServices';
 import { useInitiatePayment } from '@/tanstack/usePayments';
 import { formatCurrency, normalizePhoneNumber, validateEmail } from '@/utils/paymentUtils';
@@ -141,8 +142,9 @@ const ServicePaymentScreen = () => {
         services: selectedServices
       };
 
+      let phoneValidation: any = null;
       if (method === 'MPESA') {
-        const phoneValidation = normalizePhoneNumber(phone);
+        phoneValidation = normalizePhoneNumber(phone);
         payload.phone = phoneValidation.normalized;
       } else {
         const emailValidation = validateEmail(email);
@@ -150,6 +152,24 @@ const ServicePaymentScreen = () => {
       }
 
       const result = await initiateMutation.mutateAsync(payload);
+      
+      // Show toast notification based on payment method
+      if (method === 'MPESA' && phoneValidation) {
+        const phoneDisplay = phoneValidation.normalized.replace(/^254/, '0'); // Format for display
+        Toast.show({
+          type: 'success',
+          text1: 'STK Sent!',
+          text2: `STK sent to your Phone number ${phoneDisplay}`,
+          position: 'top',
+        });
+      } else {
+        Toast.show({
+          type: 'success',
+          text1: 'Success!',
+          text2: 'Payment initiated successfully',
+          position: 'top',
+        });
+      }
       
       // Success handling - navigate to status tracking
       const paymentId = result.payment?._id || result.paymentId;

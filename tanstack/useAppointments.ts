@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 import { appointmentAPI } from '../api';
 import type {
   CancelAppointmentPayload,
@@ -97,6 +98,12 @@ export const useRescheduleAppointment = () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments', 'my'] });
       queryClient.invalidateQueries({ queryKey: ['appointment', variables.appointmentId] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Appointment rescheduled successfully',
+        position: 'top',
+      });
       console.log('Appointment rescheduled successfully');
     },
     onError: (error: any) => {
@@ -120,6 +127,12 @@ export const useCancelAppointment = () => {
       queryClient.invalidateQueries({ queryKey: ['appointments'] });
       queryClient.invalidateQueries({ queryKey: ['appointments', 'my'] });
       queryClient.invalidateQueries({ queryKey: ['appointment', variables.appointmentId] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Appointment cancelled successfully',
+        position: 'top',
+      });
       console.log('Appointment cancelled successfully');
     },
     onError: (error: any) => {

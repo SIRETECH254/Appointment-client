@@ -92,7 +92,7 @@ const RescheduleAppointmentScreen = () => {
         },
       });
       
-      Alert.alert('Success', 'Appointment rescheduled successfully');
+      // Toast notification is handled in the hook's onSuccess
       router.push(`/(authenticated)/appointment/${id}`);
     } catch (error: any) {
       // Error will be displayed via rescheduleMutation.isError

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 import { userAPI } from '../api';
 import type {
   // Removed: AdminCreateUserPayload, AssignRolePayload,
@@ -42,6 +43,12 @@ export const useUpdateProfile = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user', 'profile'] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Profile updated successfully',
+        position: 'top',
+      });
       console.log('Profile updated successfully');
     },
     onError: (error: any) => {
@@ -60,6 +67,12 @@ export const useChangePassword = () => {
       return response.data.data;
     },
     onSuccess: () => {
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Password changed successfully',
+        position: 'top',
+      });
       console.log('Password changed successfully');
     },
     onError: (error: any) => {

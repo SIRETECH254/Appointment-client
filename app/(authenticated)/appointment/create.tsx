@@ -12,6 +12,7 @@ import {
 import { DatePickerModal } from 'react-native-paper-dates';
 import { useRouter, Stack } from 'expo-router';
 import { useQueryClient } from '@tanstack/react-query';
+import Toast from 'react-native-toast-message';
 import { useCreateAppointment } from '@/tanstack/useAppointments';
 import { useGetAllServices } from '@/tanstack/useServices';
 import { useGetAllStaff } from '@/tanstack/useUsers';
@@ -274,6 +275,12 @@ const AppointmentCreateScreen = () => {
         startTime: selectedSlot.startTime,
         endTime: selectedSlot.endTime,
         notes,
+      });
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Appointment booked successfully',
+        position: 'top',
       });
       router.push('/(authenticated)/appointment');
     } catch {

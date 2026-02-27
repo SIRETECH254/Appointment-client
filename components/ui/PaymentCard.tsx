@@ -17,7 +17,7 @@ import {
   formatPaymentMethod,
   formatCurrency,
 } from '@/utils/paymentUtils';
-import { formatDateTime } from '@/utils/notificationUtils';
+import { formatDateTimeWithTime } from '@/utils/notificationUtils';
 import StatusBadge from '@/components/ui/StatusBadge';
 
 interface PaymentCardProps {
@@ -74,7 +74,7 @@ const PaymentCard: React.FC<PaymentCardProps> = ({
               <MaterialIcons name="event" size={12} color="#EA580C" />
             </View>
             <Text className="ml-2 text-xs font-medium text-orange-700">
-              {formatDateTime(payment.createdAt)}
+              {formatDateTimeWithTime(payment.createdAt)}
             </Text>
             <View className="mx-2 h-1 w-1 rounded-full bg-gray-300" />
             <View className="h-5 w-5 rounded-full bg-teal-100 items-center justify-center">

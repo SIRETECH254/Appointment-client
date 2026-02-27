@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import Toast from 'react-native-toast-message';
 import { useGetAppointment, useConfirmAppointment } from '@/tanstack/useAppointments';
 import { useServicePayment } from '@/tanstack/usePayments';
 import { formatCurrency, normalizePhoneNumber, validateEmail } from '@/utils/paymentUtils';
@@ -92,6 +93,8 @@ const AppointmentPaymentScreen = () => {
     }
 
     try {
+      let phoneValidation: any = null;
+      
       if (isPending) {
         // Confirming a pending appointment (booking fee)
         const payload: any = {
@@ -102,7 +105,7 @@ const AppointmentPaymentScreen = () => {
         };
 
         if (method === 'mpesa') {
-          const phoneValidation = normalizePhoneNumber(phone);
+          phoneValidation = normalizePhoneNumber(phone);
           payload.paymentData.phone = phoneValidation.normalized;
         } else {
           const emailValidation = validateEmail(email);
@@ -110,6 +113,24 @@ const AppointmentPaymentScreen = () => {
         }
 
         const result = await confirmMutation.mutateAsync(payload);
+        
+        // Show toast notification based on payment method
+        if (method === 'mpesa' && phoneValidation) {
+          const phoneDisplay = phoneValidation.normalized.replace(/^254/, '0'); // Format for display
+          Toast.show({
+            type: 'success',
+            text1: 'STK Sent!',
+            text2: `STK sent to your Phone number ${phoneDisplay}`,
+            position: 'top',
+          });
+        } else {
+          Toast.show({
+            type: 'success',
+            text1: 'Success!',
+            text2: 'Payment initiated successfully',
+            position: 'top',
+          });
+        }
         
         const paymentId = result.payment?._id || result.paymentId;
         const checkoutId = result.gateway?.checkoutRequestId || result.checkoutRequestId;
@@ -127,7 +148,7 @@ const AppointmentPaymentScreen = () => {
         };
 
         if (method === 'mpesa') {
-          const phoneValidation = normalizePhoneNumber(phone);
+          phoneValidation = normalizePhoneNumber(phone);
           payload.phone = phoneValidation.normalized;
         } else {
           const emailValidation = validateEmail(email);
@@ -135,6 +156,24 @@ const AppointmentPaymentScreen = () => {
         }
 
         const result = await servicePaymentMutation.mutateAsync(payload);
+        
+        // Show toast notification based on payment method
+        if (method === 'mpesa' && phoneValidation) {
+          const phoneDisplay = phoneValidation.normalized.replace(/^254/, '0'); // Format for display
+          Toast.show({
+            type: 'success',
+            text1: 'STK Sent!',
+            text2: `STK sent to your Phone number ${phoneDisplay}`,
+            position: 'top',
+          });
+        } else {
+          Toast.show({
+            type: 'success',
+            text1: 'Success!',
+            text2: 'Payment initiated successfully',
+            position: 'top',
+          });
+        }
         
         const paymentId = result.payment?._id || result.paymentId;
         const checkoutId = result.gateway?.checkoutRequestId || result.checkoutRequestId;

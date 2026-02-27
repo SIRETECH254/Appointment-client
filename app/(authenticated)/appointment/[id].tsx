@@ -50,7 +50,7 @@ const AppointmentDetailsScreen = () => {
           onPress: async () => {
             try {
               await cancelMutation.mutateAsync({ appointmentId: id!, data: {} });
-              Alert.alert('Success', 'Appointment cancelled successfully');
+              // Toast notification is handled in the hook's onSuccess
               refetch();
             } catch {
               // Error handled by mutation
