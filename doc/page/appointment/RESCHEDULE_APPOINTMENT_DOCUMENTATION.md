@@ -34,6 +34,34 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
   - `showDatePicker`: Boolean for date picker modal visibility.
   - `shouldFetchSlots`: Boolean to control when slots are fetched (only after clicking "Check Availability").
 
+**`useRescheduleAppointment` hook (from `tanstack/useAppointments.ts`):**
+```tsx
+export const useRescheduleAppointment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ appointmentId, data }: { appointmentId: string; data: RescheduleAppointmentPayload }) => {
+      const response = await appointmentAPI.reschedule(appointmentId, data);
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'my'] });
+      queryClient.invalidateQueries({ queryKey: ['appointment', variables.appointmentId] });
+      Toast.show({
+        type: 'success',
+        text1: 'Success!',
+        text2: 'Appointment rescheduled successfully',
+        position: 'top',
+      });
+    },
+    onError: (error: any) => {
+      console.error('Reschedule appointment error:', error);
+    },
+  });
+};
+```
+
 ## UI Structure
 - **ScrollView:** Full mobile scroll area.
 - **Current Slot Banner:** Summary of existing appointment date/time.
@@ -68,12 +96,86 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ```
 
 ## API Integration
+- **HTTP client:** `axios` instance from `api/config.ts` via `appointmentAPI.reschedule`.
 - **Endpoint:** `PATCH /api/appointments/:id/reschedule`.
-- **Payload:** `startTime`, `endTime`.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Payload:**
+  ```json
+  {
+    "startTime": "2026-02-01T10:00:00.000Z",
+    "endTime": "2026-02-01T11:00:00.000Z",
+    "staffId": "optional-staff-id"  // Optional: if staff also changes
+  }
+  ```
+- **Response contract:** `response.data.data` contains the updated appointment object.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "message": "Appointment rescheduled successfully",
+    "data": {
+      "appointment": {
+        "_id": "...",
+        "startTime": "2026-02-01T10:00:00.000Z",
+        "endTime": "2026-02-01T11:00:00.000Z",
+        "status": "CONFIRMED"
+      }
+    }
+  }
+  ```
+- **Cache invalidation:** After successful reschedule, queries for `['appointments']`, `['appointments', 'my']`, and `['appointment', appointmentId]` are invalidated.
+
+## Functions Involved
+
+- **`handleReschedule`** — Validates slot selection and triggers reschedule mutation.
+  ```tsx
+  const handleReschedule = useCallback(async () => {
+    if (!selectedSlot) return Alert.alert('Required', 'Please select a new time slot');
+
+    try {
+      await rescheduleMutation.mutateAsync({
+        appointmentId: id!,
+        data: {
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
+        },
+      });
+      
+      // Toast notification is handled in the hook's onSuccess
+      router.push(`/(authenticated)/appointment/${id}`);
+    } catch (error: any) {
+      // Error will be displayed via rescheduleMutation.isError
+      // The error message is already accessible via rescheduleMutation.error
+    }
+  }, [id, selectedSlot, rescheduleMutation, router]);
+  ```
+
+- **`handleCheckAvailability`** — Manually triggers slot fetching when user clicks "Check Availability" button.
+  ```tsx
+  const handleCheckAvailability = () => {
+    if (!selectedDate) {
+      setErrorMessage('Please select a date first.');
+      return;
+    }
+    setShouldFetchSlots(true);
+    setSelectedSlot(null); // Reset selected slot
+    refetchSlots();
+  };
+  ```
+
+- **`handleConfirmDate`** — Updates selected date and resets slot selection.
+  ```tsx
+  const handleConfirmDate = (date: Date) => {
+    setSelectedDate(date);
+    setSelectedSlot(null);
+    setShouldFetchSlots(false); // Reset fetch flag when date changes
+    setShowDatePicker(false);
+  };
+  ```
 
 ## Navigation Flow
 - Route: `/appointment/reschedule?id=[id]`.
-- **Success:** Returns to `/appointment/[id]`.
+- **Success:** Returns to `/appointment/[id]` with toast notification.
 - **Cancel:** `router.back()`.
 
 ## Implementation Details

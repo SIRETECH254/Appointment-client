@@ -33,8 +33,23 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **Local State:**
   - `searchTerm` - Current search input value for filtering services by name/description.
   - `debouncedSearch` - Debounced version of searchTerm (500ms delay) to reduce API calls.
-  - `filterStatus` - Selected status filter ('all', 'active', 'inactive').
+  - `filterStatus` - Selected status filter ('all', 'active', 'inactive') - currently always 'active' for public page.
 - **Derived State:** `params` memo object combining search and status filters for API query.
+
+**`useGetAllServices` hook (from `tanstack/useServices.ts`):**
+```tsx
+export const useGetAllServices = (params: GetServicesParams = {}) => {
+  return useQuery({
+    queryKey: ['services', params],
+    queryFn: async () => {
+      const response = await serviceAPI.getAllServices(params);
+      return response.data.data.services;
+    },
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
 
 ## UI Structure
 - **Header Section:** Page title "Our Services" with service payment button (if authenticated).
@@ -124,14 +139,43 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **Filter Chips:** Horizontal `ScrollView` with `TouchableOpacity` chips for status selection. Active chip uses `bg-brand-primary` with white text.
 
 ## API Integration
+- **HTTP client:** `axios` instance from `api/config.ts` via `serviceAPI.getAllServices`.
 - **Endpoint:** `GET /api/services` (public endpoint, returns active services by default).
-- **Hook:** `useGetAllServices(params)` from `@/tanstack/useServices`.
+- **Headers:** No authentication required for public endpoint.
 - **Query Parameters:**
-  - `search` - Search term for filtering by name/description.
-  - `status` - Filter by status: 'active' | 'inactive' (defaults to 'active' for public).
-  - `page` - Pagination page number (optional).
-  - `limit` - Items per page (optional).
-- **Response Structure:** Returns array of services with `_id`, `name`, `description`, `duration`, `fullPrice`, `depositAmount`, `isActive`, etc.
+  - `search` - Optional string to search by name/description
+  - `status` - Optional status filter ('active', 'inactive') - defaults to 'active' for public page
+  - `page` - Optional page number for pagination
+  - `limit` - Optional items per page
+- **Hook:** `useGetAllServices(params)` returns `{ data, isLoading, error, refetch, isFetching }`.
+- **Response contract:** `response.data.data.services` contains array of service objects.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "services": [
+        {
+          "_id": "...",
+          "name": "Haircut & Styling",
+          "description": "Professional haircut with styling and finishing",
+          "duration": 30,
+          "fullPrice": 1500,
+          "depositAmount": 500,
+          "isActive": true,
+          "createdAt": "2026-01-01T00:00:00.000Z",
+          "updatedAt": "2026-01-01T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "currentPage": 1,
+        "totalPages": 1,
+        "totalServices": 10
+      }
+    }
+  }
+  ```
+- **Cache invalidation:** Query cache is automatically managed by TanStack Query with 5-minute stale time.
 
 ## Components Used
 - **Expo Router:** `useRouter` for navigation, `Stack.Screen` for header configuration.
@@ -158,35 +202,86 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 ## Functions Involved
 
-### `formatDuration(duration: number): string`
-Formats duration in minutes to a human-readable string.
-- Input: Duration in minutes (e.g., 30, 90, 120).
-- Output: Formatted string (e.g., "30 mins", "1.5 hours", "2 hours").
-- Logic: Converts minutes to hours if >= 60, otherwise displays in minutes.
+- **`params` (memoized)** — Memoizes the query parameters object to prevent unnecessary re-renders and API calls.
+  ```tsx
+  const params = useMemo(() => ({
+    search: debouncedSearch || undefined, // Only include search if it has a value
+    status: 'active' as const, // Always fetch only active services
+  }), [debouncedSearch]);
+  ```
 
-### `formatCurrency(amount: number | string | undefined, currency?: string): string`
-Formats monetary amounts with currency symbol and proper decimal places.
-- Input: Amount (number, string, or undefined), optional currency code (default: 'KES').
-- Output: Formatted currency string (e.g., "KES 1,500.00").
-- Logic: Handles undefined/null values, formats with locale-specific number formatting.
+- **Search debouncing effect** — Debounces search term to prevent excessive API calls while user types.
+  ```tsx
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  ```
 
-### `handleServicePaymentPress()`
-Handles navigation to service payment page with authentication check.
-- Checks `isAuthenticated` from `useAuth()`.
-- If authenticated: Navigates to `/(authenticated)/payments/service`.
-- If not authenticated: Redirects to `/(public)/(auth)/login`.
+- **`handleServiceCardPress`** — Handles navigation when a service card is tapped.
+  ```tsx
+  const handleServiceCardPress = useCallback((service: IService) => {
+    // Navigate to appointment creation with pre-selected service
+    router.push({
+      pathname: '/(authenticated)/appointment/create',
+      params: { serviceId: service._id }
+    });
+  }, [router]);
+  ```
 
-### `handleSearchDebounce()`
-Debounces search input to reduce API calls.
-- Uses `useEffect` with 500ms timeout.
-- Updates `debouncedSearch` state after user stops typing.
-- Cleans up timeout on unmount or when searchTerm changes.
+- **`handleBookNowPress`** — Handles "Book Now" button press on service card.
+  ```tsx
+  const handleBookNowPress = useCallback((service: IService) => {
+    router.push({
+      pathname: '/(authenticated)/appointment/create',
+      params: { serviceId: service._id }
+    });
+  }, [router]);
+  ```
 
-### `renderServiceCard({ item }: { item: IService })`
-Renders individual service card component.
-- Displays service name, description (truncated), duration, price, and deposit.
-- Includes "Book Now" button with navigation to appointment creation.
-- Uses custom classes from global.css for consistent styling.
+- **`handleServicePaymentPress`** — Handles navigation to service payment page with authentication check.
+  ```tsx
+  const handleServicePaymentPress = useCallback(() => {
+    if (isAuthenticated) {
+      router.push('/(authenticated)/payments/service');
+    } else {
+      router.push('/(public)/(auth)/login');
+    }
+  }, [isAuthenticated, router]);
+  ```
+
+- **`onRefresh`** — Triggers the `refetch` function from the `useGetAllServices` hook for pull-to-refresh.
+  ```tsx
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+  ```
+
+- **`formatDuration` utility (from `utils/serviceUtils.ts`)** — Formats duration in minutes to a human-readable string.
+  ```tsx
+  export const formatDuration = (duration: number): string => {
+    if (duration < 60) {
+      return `${duration} mins`;
+    }
+    const hours = duration / 60;
+    return hours === 1 ? '1 hour' : `${hours} hours`;
+  };
+  ```
+
+- **`formatCurrency` utility (from `utils/paymentUtils.ts`)** — Formats monetary amounts with currency symbol and proper decimal places.
+  ```tsx
+  export const formatCurrency = (amount: number | string | undefined, currency: string = 'KES') => {
+    const value = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (value === undefined || isNaN(value)) return `${currency} 0.00`;
+    
+    return `${currency} ${value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+  ```
 
 ## Future Enhancements
 - Add service detail modal/screen with full description and images.

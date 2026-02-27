@@ -29,11 +29,37 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 ## Context and State Management
 - **Initiate Payment Mutation:** `useInitiatePayment()` handles service-only payment initiation.
 - **Service Query:** `useGetAllServices({ status: 'active' })` fetches available services.
+- **Auth Context:** `useAuth()` provides user data for autofill.
 - **Local State:**
   - `selectedServices` - Array of selected service IDs.
   - `method` - 'MPESA' | 'PAYSTACK'.
-  - `phone` - Customer phone number.
+  - `phone` - Customer phone number (autofilled from user profile if authenticated).
+  - `email` - Customer email address (autofilled from user profile if authenticated).
+  - `phoneError` - Validation error message for phone number.
+  - `emailError` - Validation error message for email address.
   - `inlineMessage` - Feedback message.
+
+**`useInitiatePayment` hook (from `tanstack/usePayments.ts`):**
+```tsx
+export const useInitiatePayment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (paymentData: InitiatePaymentPayload) => {
+      const response = await paymentAPI.initiatePayment(paymentData);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['payments'] });
+      queryClient.invalidateQueries({ queryKey: ['payments', 'my'] });
+      console.log('Payment initiated successfully');
+    },
+    onError: (error: any) => {
+      console.error('Initiate payment error:', error);
+    },
+  });
+};
+```
 
 ## UI Structure
 - **ScrollView:** Support for many services.
@@ -87,8 +113,49 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **Phone Input:** Standard `TextInput` with `keyboardType="phone-pad"`.
 
 ## API Integration
+- **HTTP client:** `axios` instance from `api/config.ts` via `paymentAPI.initiatePayment`.
 - **Endpoint:** `POST /api/payments/initiate`.
-- **Payload:** `{ services: string[], method: 'MPESA' | 'PAYSTACK', phone: string }`.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Payload:**
+  ```json
+  {
+    "appointmentId": "SERVICE_PAYMENT",
+    "services": ["serviceId1", "serviceId2"],
+    "method": "MPESA",
+    "phone": "254757429010"  // Required for MPESA, normalized format
+  }
+  ```
+  OR
+  ```json
+  {
+    "appointmentId": "SERVICE_PAYMENT",
+    "services": ["serviceId1", "serviceId2"],
+    "method": "PAYSTACK",
+    "email": "user@example.com"  // Required for PAYSTACK
+  }
+  ```
+- **Response contract:** `response.data.data` contains payment and gateway information.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "message": "Payment initiated successfully",
+    "data": {
+      "payment": {
+        "_id": "...",
+        "paymentNumber": "PAY-2026-0029",
+        "amount": 500,
+        "status": "PENDING"
+      },
+      "gateway": {
+        "checkoutRequestId": "ws_CO_..."  // For MPESA
+      },
+      "paymentId": "...",
+      "checkoutRequestId": "..."  // For MPESA
+    }
+  }
+  ```
+- **Cache invalidation:** After successful initiation, queries for `['payments']` and `['payments', 'my']` are invalidated.
 
 ## Components Used
 - Expo Router: `useRouter`, `Stack`.
@@ -107,9 +174,112 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **Cancel:** Returns to previous screen.
 
 ## Functions Involved
-- **`toggleService`** — Manages the selection array.
-- **`calculateTotal`** — Derived state for the summary.
-- **`handleSubmit`** — Validates and calls the initiation mutation.
+
+- **`toggleService`** — Manages the selection array by adding or removing service IDs.
+  ```tsx
+  const toggleService = useCallback((serviceId: string) => {
+    setSelectedServices(prev => 
+      prev.includes(serviceId) 
+        ? prev.filter(id => id !== serviceId)
+        : [...prev, serviceId]
+    );
+  }, []);
+  ```
+
+- **`calculateTotal` (memoized)** — Derived state for the summary, calculates total amount from selected services.
+  ```tsx
+  const totalAmount = useMemo(() => {
+    return selectedServices.reduce((sum, serviceId) => {
+      const service = services.find(s => s._id === serviceId);
+      return sum + (service?.fullPrice || 0);
+    }, 0);
+  }, [selectedServices, services]);
+  ```
+
+- **`handleSubmit`** — Validates inputs and calls the initiation mutation with toast notifications.
+  ```tsx
+  const handlePayment = useCallback(async () => {
+    if (selectedServices.length === 0) {
+      Alert.alert('Error', 'Please select at least one service.');
+      return;
+    }
+
+    if (method === 'MPESA') {
+      const phoneValidation = normalizePhoneNumber(phone);
+      if (!phoneValidation.isValid) {
+        setPhoneError(phoneValidation.error || 'Invalid phone number');
+        return;
+      }
+    } else {
+      const emailValidation = validateEmail(email);
+      if (!emailValidation.isValid) {
+        setEmailError(emailValidation.error || 'Invalid email address');
+        return;
+      }
+    }
+
+    try {
+      const payload: any = {
+        appointmentId: 'SERVICE_PAYMENT',
+        method: method,
+        services: selectedServices
+      };
+
+      let phoneValidation: any = null;
+      if (method === 'MPESA') {
+        phoneValidation = normalizePhoneNumber(phone);
+        payload.phone = phoneValidation.normalized;
+      } else {
+        const emailValidation = validateEmail(email);
+        payload.email = emailValidation.normalized;
+      }
+
+      const result = await initiateMutation.mutateAsync(payload);
+      
+      // Show toast notification based on payment method
+      if (method === 'MPESA' && phoneValidation) {
+        const phoneDisplay = phoneValidation.normalized.replace(/^254/, '0');
+        Toast.show({
+          type: 'success',
+          text1: 'STK Sent!',
+          text2: `STK sent to your Phone number ${phoneDisplay}`,
+          position: 'top',
+        });
+      } else {
+        Toast.show({
+          type: 'success',
+          text1: 'Success!',
+          text2: 'Payment initiated successfully',
+          position: 'top',
+        });
+      }
+      
+      const paymentId = result.payment?._id || result.paymentId;
+      const checkoutId = result.gateway?.checkoutRequestId || result.checkoutRequestId;
+      
+      router.push({
+        pathname: '/(authenticated)/payments/status',
+        params: { paymentId, checkoutId }
+      });
+    } catch {
+      // Error handled by mutation
+    }
+  }, [selectedServices, method, phone, email, initiateMutation, router]);
+  ```
+
+- **Autofill effect** — Autofills phone and email from user profile if authenticated.
+  ```tsx
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.phone && !phone) {
+        setPhone(user.phone);
+      }
+      if (user.email && !email) {
+        setEmail(user.email);
+      }
+    }
+  }, [isAuthenticated, user]);
+  ```
 
 ## Implementation Details
 - **Dynamic Amount:** Backend calculates the final amount based on service IDs to prevent client-side manipulation.

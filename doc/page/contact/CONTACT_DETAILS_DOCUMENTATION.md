@@ -28,9 +28,45 @@ import StatusBadge from '@/components/ui/StatusBadge';
 ## Context and State Management
 - **Route Params:** `useLocalSearchParams()` extracts the `id` of the contact message from the URL (`/contact/[id]`).
 - **TanStack Query:**
-  - `useGetContactMessageDetails(id)` (placeholder hook) fetches the details of a specific contact message.
-  - `useMarkContactMessageAsRead()` (placeholder mutation) to mark the message as read.
-  - `useArchiveContactMessage()` (placeholder mutation) to archive the message.
+  - `useGetContactMessageById(id)` fetches the details of a specific contact message.
+  - `useUpdateContactMessageStatus()` mutation to update message status (read, archived, etc.).
+
+**`useGetContactMessageById` hook (from `tanstack/useContact.ts`):**
+```tsx
+export const useGetContactMessageById = (contactId: string) => {
+  return useQuery<IContact>({
+    queryKey: ['contactMessage', contactId],
+    queryFn: async () => {
+      const response = await contactAPI.getContactMessageById(contactId);
+      return response.data.data.contact;
+    },
+    enabled: !!contactId, // Only run if contactId exists
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
+
+**`useUpdateContactMessageStatus` hook (from `tanstack/useContact.ts`):**
+```tsx
+export const useUpdateContactMessageStatus = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ contactId, status }: { contactId: string; status: IContact['status'] }) => {
+      const response = await contactAPI.updateContactMessage(contactId, { status });
+      return response.data.data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['contactMessages'] });
+      queryClient.invalidateQueries({ queryKey: ['contactMessage', variables.contactId] });
+      console.log(`Contact message ${variables.contactId} status updated to ${variables.status}`);
+    },
+    onError: (error: any) => {
+      console.error('Failed to update contact message status:', error);
+    },
+  });
+};
+```
 
 ## UI Structure
 - **SafeAreaView & ScrollView:** Main container for comfortable viewing on mobile devices.
@@ -92,11 +128,37 @@ import StatusBadge from '@/components/ui/StatusBadge';
 - **Delete:** Icon in header to permanently delete the message (with confirmation).
 
 ## API Integration
-- **Endpoint:** `GET /api/contact/messages/:id` (hypothetical) for details.
-- **Mutation Hooks:**
-  - `PATCH /api/contact/messages/:id/read` (hypothetical) for marking as read.
-  - `PATCH /api/contact/messages/:id/archive` (hypothetical) for archiving.
-- **Hooks:** `useGetContactMessageDetails(id)`, `useMarkContactMessageAsRead()`, `useArchiveContactMessage()`.
+- **HTTP client:** `axios` instance from `api/config.ts` via `contactAPI.getContactMessageById` and `contactAPI.updateContactMessage`.
+- **Get Endpoint:** `GET /api/contact/messages/:id` for details.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Response contract:** `response.data.data.contact` contains the contact message object.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "contact": {
+        "_id": "...",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "phone": "+254700000000",
+        "subject": "Question about services",
+        "message": "I would like to know more about...",
+        "status": "NEW",
+        "createdAt": "2026-02-16T00:00:00.000Z",
+        "updatedAt": "2026-02-16T00:00:00.000Z"
+      }
+    }
+  }
+  ```
+- **Update Status Endpoint:** `PATCH /api/contact/messages/:id` for updating status.
+- **Update Payload:**
+  ```json
+  {
+    "status": "READ"  // or "REPLIED", "ARCHIVED"
+  }
+  ```
+- **Cache invalidation:** After status update, queries for `['contactMessages']` and `['contactMessage', contactId]` are invalidated.
 
 ## Components Used
 - `StatusBadge`: Badge component with icons for contact status (NEW, READ, REPLIED, ARCHIVED).
@@ -117,7 +179,65 @@ import StatusBadge from '@/components/ui/StatusBadge';
 - **Action Triggers:** Actions like Archive or Mark as Read may navigate back to the list or simply update the UI.
 
 ## Functions Involved
-- **`handleMarkAsRead()`:** Marks the contact message as read using `useUpdateContactMessageStatus` mutation (only if status is 'NEW').
+
+- **`handleMarkAsRead`** — Marks the contact message as read using `useUpdateContactMessageStatus` mutation (only if status is 'NEW').
+  ```tsx
+  const handleMarkAsRead = useCallback(async () => {
+    if (contact?.status === 'NEW') {
+      try {
+        await updateStatusMutation.mutateAsync({
+          contactId: id!,
+          status: 'READ',
+        });
+        // Toast notification can be added here if needed
+      } catch {
+        // Error handled by mutation
+      }
+    }
+  }, [id, contact, updateStatusMutation]);
+  ```
+
+- **`handleArchive`** — Archives the contact message using `useUpdateContactMessageStatus` mutation.
+  ```tsx
+  const handleArchive = useCallback(async () => {
+    Alert.alert(
+      'Archive Message',
+      'Are you sure you want to archive this message?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Archive',
+          onPress: async () => {
+            try {
+              await updateStatusMutation.mutateAsync({
+                contactId: id!,
+                status: 'ARCHIVED',
+              });
+              router.back();
+            } catch {
+              // Error handled by mutation
+            }
+          },
+        },
+      ]
+    );
+  }, [id, updateStatusMutation, router]);
+  ```
+
+- **`handleReply`** — Opens email client with pre-filled recipient and subject.
+  ```tsx
+  const handleReply = useCallback(async () => {
+    if (contact?.email) {
+      const mailtoUrl = `mailto:${contact.email}?subject=Re: ${contact.subject}`;
+      const canOpen = await Linking.canOpenURL(mailtoUrl);
+      if (canOpen) {
+        await Linking.openURL(mailtoUrl);
+      } else {
+        Alert.alert('Error', 'Unable to open email client');
+      }
+    }
+  }, [contact]);
+  ```
 - **`handleArchive()`:** Archives the contact message using `useUpdateContactMessageStatus` mutation after user confirmation via Alert, then navigates back to list.
 - **`useEffect` for auto-mark:** Automatically marks message as read when details screen is opened if message status is 'NEW'.
 - **`formatDateTimeWithTime()`:** Formats the message creation timestamp for display.

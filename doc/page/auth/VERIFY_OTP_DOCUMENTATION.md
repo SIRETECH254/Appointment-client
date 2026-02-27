@@ -188,12 +188,50 @@ const resendOTP = async (emailData: ResendOTPPayload): Promise<AuthResult> => {
 
 ## API Integration
 - **HTTP client:** `axios` instance from `api/config.ts` via `authAPI.verifyOTP` and `authAPI.resendOTP`.
-- **Endpoints:** 
-  - `POST /api/auth/verify-otp` — Verify OTP and activate account.
-  - `POST /api/auth/resend-otp` — Resend OTP code.
-- **Payload:** `{ email: string; otp: string }` for verify; `{ email: string }` for resend.
-- **Response contract:** `data.data` contains `{ user, accessToken, refreshToken }` on successful verification.
-- **Token handling:** tokens saved to `Expo SecureStore`; user data to `AsyncStorage`; Redux receives `loginSuccess`.
+- **Verify Endpoint:** `POST /api/auth/verify-otp` — Verify OTP and activate account.
+- **Headers:** No authentication required (public endpoint).
+- **Verify Payload:**
+  ```json
+  {
+    "email": "user@example.com",
+    "otp": "123456"
+  }
+  ```
+- **Verify Response contract:** `response.data.data` contains `{ user, accessToken, refreshToken }` on successful verification.
+- **Verify Response structure:**
+  ```json
+  {
+    "success": true,
+    "message": "OTP verified successfully",
+    "data": {
+      "user": {
+        "_id": "...",
+        "firstName": "Jane",
+        "lastName": "Doe",
+        "email": "user@example.com",
+        "role": "customer"
+      },
+      "accessToken": "...",
+      "refreshToken": "..."
+    }
+  }
+  ```
+- **Resend Endpoint:** `POST /api/auth/resend-otp` — Resend OTP code.
+- **Resend Payload:**
+  ```json
+  {
+    "email": "user@example.com"
+  }
+  ```
+- **Resend Response structure:**
+  ```json
+  {
+    "success": true,
+    "message": "OTP resent successfully"
+  }
+  ```
+- **Token handling:** On successful verification, tokens are saved to `Expo SecureStore`; user data to `AsyncStorage`; Redux receives `loginSuccess` action.
+- **Error responses:** API returns error message in `response.data.message`; fallback to generic message.
 
 ## Components Used
 - React Native: `View`, `Text`, `TextInput`, `TouchableOpacity`, `ScrollView`.
@@ -217,44 +255,65 @@ const resendOTP = async (emailData: ResendOTPPayload): Promise<AuthResult> => {
   - "Back to sign in" link ➞ `/(public)/(auth)/login`.
 
 ## Functions Involved
-- **`handleInputChange`** — clears Redux and inline errors whenever the user adjusts a field.
+
+- **`handleInputChange`** — Clears Redux and inline errors whenever the user adjusts a field. Includes special logic for OTP input to auto-submit when 6 digits are entered.
   ```tsx
-  const handleInputChange = useCallback((name: keyof typeof form, value: string) => {
-    setForm((previous) => ({ ...previous, [name]: value }));
-    if (error) {
-      clearError();
-    }
-    setInlineError(null);
-  }, [error, clearError]);
+  const handleInputChange = useCallback(
+    (name: keyof typeof form, value: string) => {
+      // Update the form and clear any visible errors.
+      if (name === 'otp') {
+        // Only allow digits, max 6 characters
+        const digitsOnly = value.replace(/[^0-9]/g, '').slice(0, 6);
+        setForm((previous) => ({ ...previous, [name]: digitsOnly }));
+        // Auto-submit when 6 digits entered
+        if (digitsOnly.length === 6) {
+          setTimeout(() => handleSubmit(digitsOnly), 100); // Auto-triggers handleSubmit.
+        }
+      } else {
+        setForm((previous) => ({ ...previous, [name]: value }));
+      }
+      if (error) {
+        clearError(); // Clears global auth errors.
+      }
+      setInlineError(null); // Clears local inline errors.
+    },
+    [error, clearError, handleSubmit],
+  );
   ```
 
-- **`handleSubmit`** — orchestrates local validation, calls `verifyOTP`, handles navigation.
+- **`handleSubmit`** — Validates email and OTP, calls `verifyOTP`, and handles navigation on success.
   ```tsx
-  const handleSubmit = useCallback(async () => {
+  const handleSubmit = useCallback(async (otpValue?: string) => {
     const trimmedEmail = form.email.trim();
-    if (!trimmedEmail || !form.otp || form.otp.length !== 6) {
+    const otpToVerify = otpValue || form.otp;
+
+    if (!trimmedEmail || !otpToVerify || otpToVerify.length !== 6) {
       setInlineError('Please enter your email and a valid 6-digit OTP.');
       return;
     }
 
+    // Clear old errors and start the button loader.
     setInlineError(null);
     setIsSubmitting(true);
 
     try {
-      const result = await verifyOTP({ email: trimmedEmail, otp: form.otp });
+      // Calls the verifyOTP function from AuthContext to verify the OTP.
+      const result = await verifyOTP({ email: trimmedEmail, otp: otpToVerify });
       if (!result.success) {
         setInlineError(result.error ?? 'Unable to verify OTP.');
         return;
       }
 
+      // Redirect to the authenticated profile page upon successful OTP verification.
       router.replace('/(authenticated)/(tabs)/profile');
     } finally {
+      // Always stop the loader.
       setIsSubmitting(false);
     }
   }, [form.email, form.otp, verifyOTP, router]);
   ```
 
-- **`handleResend`** — calls `resendOTP` and starts countdown timer.
+- **`handleResend`** — Validates email and calls `resendOTP` with countdown timer.
   ```tsx
   const handleResend = useCallback(async () => {
     const trimmedEmail = form.email.trim();
@@ -264,16 +323,45 @@ const resendOTP = async (emailData: ResendOTPPayload): Promise<AuthResult> => {
     }
 
     setInlineError(null);
-    setIsResending(true);
 
     try {
+      // Calls the resendOTP function from AuthContext.
       const result = await resendOTP({ email: trimmedEmail });
       if (!result.success) {
         setInlineError(result.error ?? 'Unable to resend OTP.');
         return;
       }
 
-      // Start countdown
+      // Start countdown timer (60 seconds)
+      setCanResend(false);
+      setResendCountdown(60);
+      
+      const interval = setInterval(() => {
+        setResendCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            setCanResend(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch {
+      setInlineError('Unexpected error. Please try again.');
+    }
+  }, [form.email, resendOTP]);
+  ```
+
+- **`canSubmit` (memoized)** — Determines if form can be submitted based on validation rules.
+  ```tsx
+  const canSubmit = useMemo(
+    () =>
+      Boolean(form.email.trim() && form.otp.length === 6) &&
+      !isSubmitting &&
+      !isLoading,
+    [form.email, form.otp, isSubmitting, isLoading],
+  );
+  ```
       setResendCountdown(60);
       setCanResend(false);
     } finally {

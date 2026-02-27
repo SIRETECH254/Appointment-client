@@ -115,8 +115,28 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
   - Update status based on API result.
 
 ## API Integration
-- **Get Endpoint:** `GET /api/payments/:paymentId`.
-- **Status Query:** `GET /api/payments/status/:checkoutId` (Fallback only).
+- **HTTP client:** `axios` instance from `api/config.ts` via `paymentAPI.getPayment` and `paymentAPI.queryMpesaStatus`.
+- **Get Endpoint:** `GET /api/payments/:paymentId` via `useGetPaymentById(paymentId)`.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Response contract:** `response.data.data.payment` contains the payment object with current status.
+- **Status Query Endpoint (Fallback):** `GET /api/payments/status/:checkoutId` via `useQueryMpesaStatus(checkoutId)`.
+- **Fallback Query:** Only triggered after 60 seconds if no Socket.IO callback received for M-Pesa payments.
+- **Fallback Response Structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "ResultCode": 0,
+      "ResultDesc": "The service request is processed successfully.",
+      "CheckoutRequestID": "ws_CO_..."
+    }
+  }
+  ```
+- **Socket.IO Events:**
+  - `subscribe-to-payment` - Emit to subscribe to payment updates
+  - `callback.received` - Listen for M-Pesa callback with `{ paymentId, CODE, message }`
+  - `payment.updated` - Listen for payment status updates with `{ paymentId, status }`
+- **Cache invalidation:** Payment query is automatically refetched when status changes via Socket.IO.
 
 ## Components Used
 - Expo Router: `useLocalSearchParams`, `useRouter`, `Stack`.
@@ -135,9 +155,95 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 - **Back Button:** Returns to the previous screen (with confirmation if pending).
 
 ## Functions Involved
-- **`startTracking`** — Initializes websocket and event listeners.
-- **`handleMpesaCallback`** — Maps Daraja result codes to UI states.
-- **`clearTimers`** — Cleanup for sockets and timeouts.
+
+- **`startTracking`** — Initializes websocket connection and event listeners for real-time payment tracking.
+  ```tsx
+  const startTracking = useCallback((trackingPaymentId: string, trackingMethod: string) => {
+    clearPaymentTimers();
+
+    // Initialize Socket connection
+    socketRef.current = io(API_BASE_URL, {
+      transports: ['websocket'],
+      forceNew: true,
+      timeout: 20000,
+      reconnection: true,
+      reconnectionAttempts: 5,
+    });
+
+    socketRef.current.on('connect', () => {
+      setSocketConnected(true);
+      socketRef.current?.emit('subscribe-to-payment', trackingPaymentId);
+    });
+
+    socketRef.current.on('callback.received', (payload: any) => {
+      if (payload.paymentId === trackingPaymentId) {
+        handleMpesaResultCode(payload.CODE, payload.message);
+      }
+    });
+
+    socketRef.current.on('payment.updated', (payload: any) => {
+      if (payload.paymentId === trackingPaymentId) {
+        setSocketStatus(payload.status);
+        if (payload.status === 'SUCCESS' || payload.status === 'FAILED') {
+          clearPaymentTimers();
+        }
+      }
+    });
+
+    // Fallback timeout for M-Pesa (60 seconds)
+    if (trackingMethod === 'MPESA' && checkoutId) {
+      timeoutRef.current = setTimeout(() => {
+        setIsFallbackActive(true);
+        refetchMpesaStatus();
+      }, FALLBACK_TIMEOUT);
+    }
+  }, [clearPaymentTimers, handleMpesaResultCode, checkoutId, refetchMpesaStatus]);
+  ```
+
+- **`handleMpesaResultCode`** — Maps Daraja result codes to UI states and handles errors.
+  ```tsx
+  const handleMpesaResultCode = useCallback((resultCode: number | string, resultMessage: string) => {
+    clearPaymentTimers();
+    // Ensure we handle string codes from API (e.g., "0")
+    const code = typeof resultCode === 'string' ? parseInt(resultCode, 10) : resultCode;
+
+    if (code === 0) {
+      setSocketStatus('SUCCESS');
+    } else if (code === 1032) {
+      setSocketStatus('CANCELLED');
+      setSocketError('Payment cancelled by user');
+    } else if (code === 1) {
+      setSocketStatus('FAILED');
+      setSocketError('Insufficient balance');
+    } else {
+      setSocketStatus('FAILED');
+      setSocketError(resultMessage || `Transaction failed (Code: ${code})`);
+    }
+  }, [clearPaymentTimers]);
+  ```
+
+- **`clearPaymentTimers`** — Cleanup function for sockets and timeouts on unmount or status change.
+  ```tsx
+  const clearPaymentTimers = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    if (socketRef.current) {
+      socketRef.current.disconnect();
+      socketRef.current = null;
+    }
+  }, []);
+  ```
+
+- **Cleanup effect** — Ensures socket and timers are cleaned up on component unmount.
+  ```tsx
+  useEffect(() => {
+    return () => {
+      clearPaymentTimers();
+    };
+  }, [clearPaymentTimers]);
+  ```
 
 ## Implementation Details
 - **WebSocket Fallback:** Ensure `socketRef.current` is cleaned up on unmount.

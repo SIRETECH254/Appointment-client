@@ -32,6 +32,67 @@ import StatusBadge from '@/components/ui/StatusBadge';
   - `useMarkNotificationAsRead()` marks item as read.
   - `useDeleteNotification()` deletes item and navigates back.
 
+**`useGetNotification` hook (from `tanstack/useNotifications.ts`):**
+```tsx
+export const useGetNotification = (notificationId: string) => {
+  return useQuery({
+    queryKey: ['notifications', notificationId],
+    queryFn: async () => {
+      const response = await notificationAPI.getNotification(notificationId);
+      return response.data.data.notification;
+    },
+    enabled: !!notificationId,
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
+
+**`useMarkNotificationAsRead` hook (from `tanstack/useNotifications.ts`):**
+```tsx
+export const useMarkNotificationAsRead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationId: string) => {
+      const response = await notificationAPI.markAsRead(notificationId);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+      console.log('Notification marked as read');
+    },
+    onError: (error: any) => {
+      console.error('Mark as read error:', error);
+    },
+  });
+};
+```
+
+**`useDeleteNotification` hook (from `tanstack/useNotifications.ts`):**
+```tsx
+export const useDeleteNotification = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (notificationId: string) => {
+      const response = await notificationAPI.deleteNotification(notificationId);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+      console.log('Notification deleted');
+    },
+    onError: (error: any) => {
+      console.error('Delete notification error:', error);
+    },
+  });
+};
+```
+
 ## UI Structure
 - **Top Bar:** Back button and page title (delete button removed from header).
 - **Detail Container:** Scrollable view containing all notification info.
@@ -96,9 +157,54 @@ import StatusBadge from '@/components/ui/StatusBadge';
 - **Action Buttons:** Dynamic buttons if bidirectional actions are present.
 
 ## API Integration
-- **Endpoint:** `GET /api/notifications/:id`.
-- **Mark Read:** `PATCH /api/notifications/:id/read`.
-- **Delete:** `DELETE /api/notifications/:id`.
+- **HTTP client:** `axios` instance from `api/config.ts` via `notificationAPI.getNotification`, `notificationAPI.markAsRead`, and `notificationAPI.deleteNotification`.
+- **Get Endpoint:** `GET /api/notifications/:id`.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Response contract:** `response.data.data.notification` contains the notification object.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "notification": {
+        "_id": "...",
+        "userId": "...",
+        "category": "APPOINTMENT",
+        "type": "IN_APP",
+        "title": "Appointment Confirmed",
+        "message": "Your appointment has been confirmed",
+        "read": false,
+        "isUnread": true,
+        "createdAt": "2026-02-16T00:00:00.000Z",
+        "readAt": null
+      }
+    }
+  }
+  ```
+- **Mark Read Endpoint:** `PATCH /api/notifications/:id/read`.
+- **Mark Read Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Notification marked as read",
+    "data": {
+      "notification": {
+        "_id": "...",
+        "read": true,
+        "readAt": "2026-02-16T10:30:00.000Z"
+      }
+    }
+  }
+  ```
+- **Delete Endpoint:** `DELETE /api/notifications/:id`.
+- **Delete Response:**
+  ```json
+  {
+    "success": true,
+    "message": "Notification deleted successfully"
+  }
+  ```
+- **Cache invalidation:** After mark as read or delete, queries for `['notifications']`, `['notifications', 'unread']`, and `['notifications', 'unread-count']` are invalidated.
 
 ## Components Used
 - `StatusBadge`: Badge component with icons for category and type badges.
@@ -117,7 +223,52 @@ import StatusBadge from '@/components/ui/StatusBadge';
 - **Delete Success:** Redirects to List view.
 
 ## Functions Involved
-- `handleMarkAsRead`: Updates local cache and server (automatically called when notification is opened if unread).
+
+- **`handleMarkAsRead`** — Marks the current notification as read if it's unread.
+  ```tsx
+  const handleMarkAsRead = useCallback(async () => {
+    if (!notification || !notification.isUnread) return;
+    try {
+      await markAsReadMutation.mutateAsync(notification._id);
+    } catch (error) {
+      console.error('Failed to mark as read:', error);
+    }
+  }, [notification, markAsReadMutation]);
+  ```
+
+- **`handleDelete`** — Handles deleting the current notification with confirmation.
+  ```tsx
+  const handleDelete = useCallback(() => {
+    Alert.alert(
+      'Delete Notification',
+      'Are you sure you want to delete this notification?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await deleteMutation.mutateAsync(id!);
+              router.back();
+            } catch (error) {
+              console.error('Failed to delete notification:', error);
+            }
+          },
+        },
+      ]
+    );
+  }, [id, deleteMutation, router]);
+  ```
+
+- **Auto-mark as read effect** — Automatically marks notification as read when opened if unread.
+  ```tsx
+  useEffect(() => {
+    if (notification && notification.isUnread) {
+      handleMarkAsRead();
+    }
+  }, [notification, handleMarkAsRead]);
+  ```
 - `handleDelete`: Removed from detail page (delete functionality removed).
 - `handleActionClick`: Handles custom buttons from notification actions.
 

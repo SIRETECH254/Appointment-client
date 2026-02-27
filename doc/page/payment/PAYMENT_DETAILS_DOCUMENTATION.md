@@ -31,6 +31,22 @@ import type { IPayment } from '@/types/api.types';
 - **TanStack Query:** `useGetPaymentById(id)` fetches payment data.
 - **Derived State:** Payment information extracted from API response.
 
+**`useGetPaymentById` hook (from `tanstack/usePayments.ts`):**
+```tsx
+export const useGetPaymentById = (paymentId: string) => {
+  return useQuery({
+    queryKey: ['payment', paymentId],
+    queryFn: async () => {
+      const response = await paymentAPI.getPayment(paymentId);
+      return response.data.data.payment;
+    },
+    enabled: !!paymentId,
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
+
 ## UI Structure
 - **Safe Area & ScrollView:** Main container for mobile layout.
 - **Header Card:** StatusBadge, payment number with icon, amount with icon, and payment method with icon.
@@ -81,7 +97,10 @@ import type { IPayment } from '@/types/api.types';
 ```
 
 ## API Integration
+- **HTTP client:** `axios` instance from `api/config.ts` via `paymentAPI.getPayment`.
 - **Get Endpoint:** `GET /api/payments/:paymentId` via `useGetPaymentById(paymentId)`.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Response contract:** `response.data.data.payment` contains the payment object.
 - **Response Structure:**
   ```json
   {
@@ -92,6 +111,10 @@ import type { IPayment } from '@/types/api.types';
           "daraja": {
             "merchantRequestId": "...",
             "checkoutRequestId": "..."
+          },
+          "paystack": {
+            "reference": "...",
+            "authorization_url": "..."
           }
         },
         "_id": "...",
@@ -102,12 +125,13 @@ import type { IPayment } from '@/types/api.types';
         "type": "FULL_PAYMENT",
         "method": "MPESA",
         "status": "SUCCESS",
-        "createdAt": "...",
-        "updatedAt": "..."
+        "createdAt": "2026-02-16T14:24:00.000Z",
+        "updatedAt": "2026-02-16T14:24:00.000Z"
       }
     }
   }
   ```
+- **Cache invalidation:** Query cache is automatically managed by TanStack Query with 5-minute stale time.
 
 ## Components Used
 - `StatusBadge`: Badge component with icons for payment status (SUCCESS, COMPLETED, PENDING, PROCESSING, FAILED, CANCELLED).
@@ -128,9 +152,41 @@ import type { IPayment } from '@/types/api.types';
 - **Back Button:** Navigate back to `/(authenticated)/payments` (payment history).
 
 ## Functions Involved
-- **`formatPaymentMethod()`** — Formats payment method (MPESA, PAYSTACK, etc.) for display.
-- **`formatCurrency()`** — Formats payment amount with currency symbol for display.
-- **`formatDateTimeWithTime()`** — Formats payment creation timestamp with time for display.
+
+- **`formatPaymentMethod` utility (from `utils/paymentUtils.ts`)** — Formats payment method (MPESA, PAYSTACK, etc.) for display.
+  ```tsx
+  export const formatPaymentMethod = (method: string): string => {
+    switch (method?.toUpperCase()) {
+      case 'MPESA':
+        return 'M-Pesa';
+      case 'PAYSTACK':
+        return 'Paystack';
+      default:
+        return method || 'Unknown';
+    }
+  };
+  ```
+
+- **`formatCurrency` utility (from `utils/paymentUtils.ts`)** — Formats payment amount with currency symbol for display.
+  ```tsx
+  export const formatCurrency = (amount: number | string | undefined, currency: string = 'KES') => {
+    const value = typeof amount === 'string' ? parseFloat(amount) : amount;
+    if (value === undefined || isNaN(value)) return `${currency} 0.00`;
+    
+    return `${currency} ${value.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
+  };
+  ```
+
+- **`formatDateTimeWithTime` utility (from `utils/notificationUtils.ts`)** — Formats payment creation timestamp with time for display.
+  ```tsx
+  export const formatDateTimeWithTime = (dateString: string | Date | undefined) => {
+    if (!dateString) return '';
+    return format(new Date(dateString), 'MMM d, yyyy p');
+  };
+  ```
 
 ## Implementation Details
 - **Native Components:** Using `View`, `Text`, and `ScrollView` for layout.

@@ -114,11 +114,26 @@ import { useAuth } from '../../../contexts/AuthContext';
 ```
 
 ## API Integration
-- **HTTP client:** `useAuth().resetPassword(token, password)` calls `authAPI.resetPassword` (axios).
-- **Endpoint:** `POST /api/auth/reset-password/:token`.
-- **Payload:** `{ newPassword }` only — confirm field omitted intentionally.
-- **Success path:** shows a green success banner and redirects back to `/(public)/(auth)/login` after a short delay.
-- **Error handling:** displays API message or fallback inline message.
+- **HTTP client:** `axios` instance from `api/config.ts` via `authAPI.resetPassword`.
+- **Endpoint:** `POST /api/auth/reset-password/:token` where `:token` is extracted from route params.
+- **Headers:** No authentication required (public endpoint).
+- **Payload:**
+  ```json
+  {
+    "newPassword": "newSecurePassword123"
+  }
+  ```
+- **Response contract:** Success returns confirmation message; error responses populate `response.data.message`.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "message": "Password reset successfully"
+  }
+  ```
+- **Error responses:** API returns error message in `response.data.message`; fallback to generic message.
+- **Success path:** Shows a green success banner and redirects back to `/(public)/(auth)/login` after a short delay (2-3 seconds).
+- **Error handling:** Displays API message or fallback inline message in red banner.
 
 ## Components Used
 - React Native: `View`, `Text`, `TextInput`, `TouchableOpacity`, `ScrollView`.

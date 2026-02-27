@@ -29,10 +29,25 @@ import type { IPayment } from '@/types/api.types';
 ## Context and State Management
 - **TanStack Query:** `useGetMyPayments(params)` fetches the authenticated user's payment history.
 - **Local State:**
-  - `filterStatus` - Selected status filter (all/pending/success/failed).
-  - `filterMethod` - Selected payment method (all/mpesa/paystack).
-  - `page` - Current page number for pagination (default: 1).
+  - `searchTerm` - Current search input value for filtering by payment number.
+  - `debouncedSearch` - Debounced version of searchTerm (500ms delay) to reduce API calls.
+  - `filterStatus` - Selected status filter ('all', 'success', 'pending', 'failed').
 - **Derived State:** `params` memo for filtering and pagination.
+
+**`useGetMyPayments` hook (from `tanstack/usePayments.ts`):**
+```tsx
+export const useGetMyPayments = (params: GetMyPaymentsParams = {}) => {
+  return useQuery({
+    queryKey: ['payments', 'my', params],
+    queryFn: async () => {
+      const response = await paymentAPI.getMyPayments(params);
+      return response.data.data;
+    },
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
 
 ## UI Structure
 - **Header:** Displays the screen title "Payment History".
@@ -94,14 +109,34 @@ import type { IPayment } from '@/types/api.types';
 - **Filter Chips:** Horizontal `ScrollView` with `TouchableOpacity` chips for status/method selection.
 
 ## API Integration
+- **HTTP client:** `axios` instance from `api/config.ts` via `paymentAPI.getMyPayments`.
 - **Endpoint:** `GET /api/payments/my-payments` with query parameters.
-- **Hook:** `useGetMyPayments(params)`.
-- **Response Structure:**
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Query parameters:**
+  - `search` - Optional string to search by payment number
+  - `status` - Optional status filter ('SUCCESS', 'PENDING', 'PROCESSING', 'FAILED', 'CANCELLED')
+  - `method` - Optional payment method filter ('MPESA', 'PAYSTACK')
+  - `page` - Optional page number for pagination
+  - `limit` - Optional items per page
+- **Hook:** `useGetMyPayments(params)` returns `{ data, isLoading, error, refetch, isFetching }`.
+- **Response contract:** `response.data.data` contains `{ payments: [...], pagination: {...} }`.
+- **Response structure:**
   ```json
   {
     "success": true,
     "data": {
-      "payments": [...],
+      "payments": [
+        {
+          "_id": "...",
+          "paymentNumber": "PAY-2026-0029",
+          "amount": 500,
+          "currency": "KES",
+          "method": "MPESA",
+          "status": "SUCCESS",
+          "type": "BOOKING_FEE",
+          "createdAt": "2026-02-16T00:00:00.000Z"
+        }
+      ],
       "pagination": {
         "currentPage": 1,
         "totalPages": 1,
@@ -110,6 +145,7 @@ import type { IPayment } from '@/types/api.types';
     }
   }
   ```
+- **Cache invalidation:** Query is automatically invalidated when payments are created or updated via mutations.
 
 ## Components Used
 - `PaymentCard`: Reusable card component displaying payment with StatusBadge, icons, and formatted information.
@@ -130,10 +166,45 @@ import type { IPayment } from '@/types/api.types';
 - **Back Button:** Navigate to Profile or Home.
 
 ## Functions Involved
-- **`renderItem({ item })`:** Renders `PaymentCard` component for each payment item.
-- **`handleStatusFilter(status)`:** Updates the `filterStatus` state when a filter chip is pressed.
-- **`onRefresh()`:** Triggers the `refetch` function from the `useGetMyPayments` hook for pull-to-refresh.
-- **`useMemo` for params:** Memoizes the query parameters object to prevent unnecessary re-renders.
+
+- **`renderItem`** — Renders `PaymentCard` component for each payment item in the FlatList.
+  ```tsx
+  const renderItem = ({ item }: { item: IPayment }) => {
+    return <PaymentCard payment={item} />;
+  };
+  ```
+
+- **`handleStatusFilter`** — Updates the `filterStatus` state when a filter chip is pressed.
+  ```tsx
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+  };
+  ```
+
+- **`onRefresh`** — Triggers the `refetch` function from the `useGetMyPayments` hook for pull-to-refresh.
+  ```tsx
+  const onRefresh = () => {
+    refetch();
+  };
+  ```
+
+- **`params` (memoized)** — Memoizes the query parameters object to prevent unnecessary re-renders and API calls.
+  ```tsx
+  const params = useMemo(() => ({
+    search: debouncedSearch || undefined,
+    status: filterStatus === 'all' ? undefined : filterStatus.toUpperCase(),
+  }), [debouncedSearch, filterStatus]);
+  ```
+
+- **Search debouncing effect** — Debounces search term to prevent excessive API calls while user types.
+  ```tsx
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  ```
 
 ## Implementation Details
 - **FlatList Optimization:** Uses `keyExtractor` and `renderItem`.

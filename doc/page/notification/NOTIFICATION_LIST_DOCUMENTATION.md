@@ -31,9 +31,46 @@ import type { Notification } from '@/types/api.types';
 - **Mutations:** 
   - `useMarkAllNotificationsAsRead()` handles marking all notifications as read.
 - **Local State:**
-  - `filterCategory` - Selected category filter (all/general/appointment/payment/system/promotional).
+  - `filterCategory` - Selected category filter ('all', 'appointment', 'payment', 'system', 'promotional', 'general').
   - `page` - Current page number (default: 1).
 - **Refresh State:** Handled by `onRefresh` for pull-to-refresh.
+
+**`useGetNotifications` hook (from `tanstack/useNotifications.ts`):**
+```tsx
+export const useGetNotifications = (params: GetNotificationsParams = {}) => {
+  return useQuery({
+    queryKey: ['notifications', params],
+    queryFn: async () => {
+      const response = await notificationAPI.getNotifications(params);
+      return response.data.data;
+    },
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
+
+**`useMarkAllNotificationsAsRead` hook (from `tanstack/useNotifications.ts`):**
+```tsx
+export const useMarkAllNotificationsAsRead = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await notificationAPI.markAllAsRead();
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', 'unread-count'] });
+      console.log('All notifications marked as read');
+    },
+    onError: (error: any) => {
+      console.error('Mark all as read error:', error);
+    },
+  });
+};
+```
 
 ## UI Structure
 - **Header:** Title "Notifications" with "Mark All Read" action.
@@ -93,9 +130,43 @@ import type { Notification } from '@/types/api.types';
 - **Items Per Page:** Default limit of 20 notifications per page.
 
 ## API Integration
+- **HTTP client:** `axios` instance from `api/config.ts` via `notificationAPI.getNotifications`.
 - **Endpoint:** `GET /api/notifications` with query parameters.
-- **Hook:** `useGetNotifications(params)`.
-- **Response:** Paginated notification data.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Query Parameters:**
+  - `category` - Optional category filter ('APPOINTMENT', 'PAYMENT', 'SYSTEM', 'PROMOTIONAL', 'GENERAL')
+  - `type` - Optional type filter ('EMAIL', 'SMS', 'PUSH', 'IN_APP')
+  - `read` - Optional boolean to filter by read status
+  - `page` - Optional page number for pagination
+  - `limit` - Optional items per page
+- **Hook:** `useGetNotifications(params)` returns `{ data, isLoading, error, refetch, isFetching }`.
+- **Response contract:** `response.data.data` contains `{ notifications: [...], pagination: {...} }`.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "notifications": [
+        {
+          "_id": "...",
+          "userId": "...",
+          "category": "APPOINTMENT",
+          "type": "IN_APP",
+          "title": "Appointment Confirmed",
+          "message": "Your appointment has been confirmed",
+          "read": false,
+          "createdAt": "2026-02-16T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "currentPage": 1,
+        "totalPages": 1,
+        "totalNotifications": 10
+      }
+    }
+  }
+  ```
+- **Cache invalidation:** Query cache is automatically managed by TanStack Query with 5-minute stale time.
 
 ## Components Used
 - `NotificationCard`: Reusable card component displaying notification with StatusBadge for category and type, icons, and preview.
@@ -116,9 +187,52 @@ import type { Notification } from '@/types/api.types';
 - **Back Button:** Navigates to Dashboard/Previous screen.
 
 ## Functions Involved
-- `handleMarkAllAsRead`: Uses `Alert.alert` for confirmation, then mutation to mark all as read.
-- `onRefresh`: Refetches data via TanStack Query.
-- `renderItem`: Renders `NotificationCard` component for each notification item.
+
+- **`handleMarkAllAsRead`** — Uses `Alert.alert` for confirmation, then mutation to mark all as read.
+  ```tsx
+  const handleMarkAllAsRead = useCallback(() => {
+    Alert.alert(
+      'Mark All as Read',
+      'Are you sure you want to mark all notifications as read?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Mark All Read',
+          onPress: async () => {
+            try {
+              await markAllAsReadMutation.mutateAsync();
+            } catch {
+              // Error handled by mutation
+            }
+          },
+        },
+      ]
+    );
+  }, [markAllAsReadMutation]);
+  ```
+
+- **`onRefresh`** — Refetches data via TanStack Query for pull-to-refresh.
+  ```tsx
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+  ```
+
+- **`renderItem`** — Renders `NotificationCard` component for each notification item.
+  ```tsx
+  const renderItem = useCallback(({ item }: { item: Notification }) => {
+    return <NotificationCard notification={item} />;
+  }, []);
+  ```
+
+- **`params` (memoized)** — Memoizes the query parameters object to prevent unnecessary re-renders.
+  ```tsx
+  const params = useMemo(() => ({
+    category: filterCategory === 'all' ? undefined : filterCategory.toUpperCase(),
+    page: page,
+    limit: 20,
+  }), [filterCategory, page]);
+  ```
 
 ## Future Enhancements
 - Push notification deep linking.

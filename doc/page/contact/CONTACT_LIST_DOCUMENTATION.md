@@ -27,11 +27,28 @@ import type { IContact } from '@/types/api.types';
 ```
 
 ## Context and State Management
-- **TanStack Query:** `useGetContactMessages(params)` to fetch a paginated list of submitted contact messages.
+- **TanStack Query:** `useGetAllContactMessages(params)` to fetch a paginated list of submitted contact messages.
 - **Local State:**
-  - `filterStatus` - Currently selected filter for message status (e.g., 'all', 'new', 'read', 'archived').
+  - `searchTerm` - Current search input value for filtering messages by keywords.
+  - `debouncedSearch` - Debounced version of searchTerm (500ms delay) to reduce API calls.
+  - `filterStatus` - Currently selected filter for message status (e.g., 'all', 'new', 'read', 'replied', 'archived').
   - `page` - Current page number for pagination (default: 1).
-- **Derived State:** `params` object memoized for `useGetContactMessages` hook, incorporating filter criteria.
+- **Derived State:** `params` object memoized for `useGetAllContactMessages` hook, incorporating filter criteria.
+
+**`useGetAllContactMessages` hook (from `tanstack/useContact.ts`):**
+```tsx
+export const useGetAllContactMessages = (params: GetContactMessagesParams = {}) => {
+  return useQuery<IContact[]>({
+    queryKey: ['contactMessages', params],
+    queryFn: async () => {
+      const response = await contactAPI.getContactMessages(params);
+      return response.data.data.contacts;
+    },
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
 
 ## UI Structure
 - **Header:** Displays the screen title "Contact Messages".
@@ -96,9 +113,41 @@ import type { IContact } from '@/types/api.types';
 - **Filter Chips:** `TouchableOpacity` components for status filtering.
 
 ## API Integration
-- **Endpoint:** `GET /api/contact/messages` (hypothetical).
-- **Hook:** `useGetContactMessages(params)` (placeholder TanStack Query hook).
-- **Parameters:** `page`, `limit`, `search`, `status`.
+- **HTTP client:** `axios` instance from `api/config.ts` via `contactAPI.getContactMessages`.
+- **Endpoint:** `GET /api/contact/messages` with query parameters.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Query Parameters:**
+  - `search` - Optional string to search by sender name or subject
+  - `status` - Optional status filter ('NEW', 'READ', 'REPLIED', 'ARCHIVED')
+  - `page` - Optional page number for pagination
+  - `limit` - Optional items per page
+- **Hook:** `useGetAllContactMessages(params)` returns `{ data, isLoading, error, refetch, isFetching }`.
+- **Response contract:** `response.data.data.contacts` contains array of contact message objects.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "contacts": [
+        {
+          "_id": "...",
+          "name": "John Doe",
+          "email": "john@example.com",
+          "subject": "Question about services",
+          "message": "I would like to know...",
+          "status": "NEW",
+          "createdAt": "2026-02-16T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "currentPage": 1,
+        "totalPages": 1,
+        "totalContacts": 5
+      }
+    }
+  }
+  ```
+- **Cache invalidation:** Query cache is automatically managed by TanStack Query with 5-minute stale time.
 
 ## Components Used
 - `ContactCard`: Reusable card component displaying contact message with StatusBadge, icons, and preview.
@@ -120,11 +169,47 @@ import type { IContact } from '@/types/api.types';
 - **Back Button:** Navigates to a previous screen (e.g., authenticated dashboard).
 
 ## Functions Involved
-- **`renderItem({ item })`:** Renders `ContactCard` component for each contact message item (memoized with `useCallback`).
-- **`handleStatusFilter(status)`:** Updates the `filterStatus` state when a filter chip is pressed.
-- **`useEffect` for debounce:** Debounces the search input to avoid excessive API calls (500ms delay).
-- **`useMemo` for params:** Memoizes the query parameters object to prevent unnecessary re-renders.
-- **`onRefresh()`:** Triggers the `refetch` function from the `useGetAllContactMessages` hook for pull-to-refresh.
+
+- **`renderItem`** — Renders `ContactCard` component for each contact message item (memoized with `useCallback`).
+  ```tsx
+  const renderItem = useCallback(({ item }: { item: IContact }) => {
+    return <ContactCard contact={item} />;
+  }, []);
+  ```
+
+- **`handleStatusFilter`** — Updates the `filterStatus` state when a filter chip is pressed.
+  ```tsx
+  const handleStatusFilter = useCallback((status: string) => {
+    setFilterStatus(status);
+  }, []);
+  ```
+
+- **Search debouncing effect** — Debounces search input to avoid excessive API calls (500ms delay).
+  ```tsx
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  ```
+
+- **`params` (memoized)** — Memoizes the query parameters object to prevent unnecessary re-renders.
+  ```tsx
+  const params = useMemo(() => ({
+    search: debouncedSearch || undefined,
+    status: filterStatus === 'all' ? undefined : filterStatus.toUpperCase(),
+    page: page,
+    limit: 10,
+  }), [debouncedSearch, filterStatus, page]);
+  ```
+
+- **`onRefresh`** — Triggers the `refetch` function from the `useGetAllContactMessages` hook for pull-to-refresh.
+  ```tsx
+  const onRefresh = useCallback(() => {
+    refetch();
+  }, [refetch]);
+  ```
 
 ## Future Enhancements
 - Implement infinite scrolling for `FlatList` to load more messages as the user scrolls.

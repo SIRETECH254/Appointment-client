@@ -106,10 +106,41 @@ import { useAuth } from '../../contexts/AuthContext';
 - **Send Message:** `TouchableOpacity` with loading indicator.
 
 ## API Integration
+- **HTTP client:** `axios` instance from `api/config.ts` via `contactAPI.submitMessage`.
 - **Hook:** `useSubmitContactMessage()` from `@/tanstack/useContact`.
 - **Endpoint:** `POST /api/contact`
-- **Payload:** `{ name: string; email: string; phone?: string; subject: string; message: string }`.
-- **Auth Required:** No (optional auth for auto-fill).
+- **Headers:** Optionally includes `Authorization: Bearer <token>` if user is authenticated (for auto-fill).
+- **Payload:**
+  ```json
+  {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "+254700000000",  // Optional
+    "subject": "Question about services",
+    "message": "I would like to know more about..."
+  }
+  ```
+- **Response contract:** `response.data.data` contains the submitted contact message.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "message": "Message sent successfully",
+    "data": {
+      "contact": {
+        "_id": "...",
+        "name": "John Doe",
+        "email": "john@example.com",
+        "phone": "+254700000000",
+        "subject": "Question about services",
+        "message": "I would like to know more about...",
+        "status": "NEW",
+        "createdAt": "2026-02-16T00:00:00.000Z"
+      }
+    }
+  }
+  ```
+- **Cache invalidation:** After successful submission, `queryClient.invalidateQueries({ queryKey: ['contactMessages'] })` is called.
 
 ## Components Used
 - React Native: `View`, `Text`, `ScrollView`, `Platform`, `Linking`, `TouchableOpacity`, `TextInput`, `ActivityIndicator`, `Alert`.
@@ -122,6 +153,70 @@ import { useAuth } from '../../contexts/AuthContext';
 - **Inline messages:** Displays `success` or `error` banners after form submission.
 - **Loading state:** `ActivityIndicator` on the submit button while the API call is in progress.
 - **API errors:** Catches errors from `submitMessageMutation` and displays a user-friendly message.
+
+## Functions Involved
+
+- **`handleInputChange`** — Updates form state when TextInput values change and clears inline messages.
+  ```tsx
+  const handleInputChange = useCallback((name: keyof typeof form, value: string) => {
+    setForm(prev => ({ ...prev, [name]: value })); // Updates the specific form field.
+    setInlineMessage(null); // Clears any inline messages.
+  }, []); // Empty dependency array means this function is created once.
+  ```
+
+- **`handleSubmit`** — Validates form, submits contact message, and provides user feedback.
+  ```tsx
+  const handleSubmit = useCallback(async () => {
+    // Basic client-side validation: Checks if all required fields are non-empty after trimming whitespace.
+    if (!form.name.trim() || !form.email.trim() || !form.subject.trim() || !form.message.trim()) {
+      setInlineMessage({ type: 'error', text: 'Please fill in all required fields (Name, Email, Subject, Message).' });
+      return; // Stops the submission process.
+    }
+
+    try {
+      // Calls the useSubmitContactMessage mutation to send the form data to the backend.
+      await submitMessageMutation.mutateAsync(form);
+      // If the API call is successful, display a success message to the user.
+      setInlineMessage({ type: 'success', text: 'Your message has been sent successfully!' });
+      
+      // Conditional form clearing logic:
+      if (!isAuthenticated) {
+        // If user is not authenticated, clear all form fields after successful submission.
+        setForm({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        });
+      } else {
+        // If user is authenticated, only clear subject and message (keep name, email, phone for convenience).
+        setForm(prev => ({
+          ...prev,
+          subject: '',
+          message: '',
+        }));
+      }
+    } catch (error: any) {
+      // If the API call fails, display an error message to the user.
+      setInlineMessage({ type: 'error', text: error.message || 'Failed to send message. Please try again.' });
+    }
+  }, [form, submitMessageMutation, isAuthenticated]);
+  ```
+
+- **Autofill effect** — Autofills form fields from user profile if authenticated.
+  ```tsx
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setForm(prev => ({
+        ...prev,
+        name: user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : prev.name,
+        email: user.email || prev.email,
+        phone: user.phone || prev.phone,
+      }));
+    }
+  }, [isAuthenticated, user]);
+  ```
 
 ## Navigation Flow
 - This page is a public route, accessible via `/(public)/contact`.

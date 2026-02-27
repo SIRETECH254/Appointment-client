@@ -29,9 +29,25 @@ import type { IAppointment } from '@/types/api.types';
 ## Context and State Management
 - **TanStack Query:** `useGetMyAppointments(params)` fetches the user's appointments.
 - **Local State:**
-  - `filterStatus` - Selected status (all, PENDING, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW).
-  - `page` - Current page number for pagination (default: 1).
+  - `searchTerm` - Current search input value for filtering by service name.
+  - `debouncedSearch` - Debounced version of searchTerm (500ms delay) to reduce API calls.
+  - `filterStatus` - Selected status filter ('all', 'pending', 'confirmed', 'completed', 'cancelled').
 - **Derived State:** `params` memo for filtering and pagination.
+
+**`useGetMyAppointments` hook (from `tanstack/useAppointments.ts`):**
+```tsx
+export const useGetMyAppointments = (params: GetMyAppointmentsParams = {}) => {
+  return useQuery({
+    queryKey: ['appointments', 'my', params],
+    queryFn: async () => {
+      const response = await appointmentAPI.getMyAppointments(params);
+      return response.data.data.appointments;
+    },
+    staleTime: DEFAULT_STALE_TIME, // 5 minutes
+    gcTime: DEFAULT_GC_TIME, // 10 minutes
+  });
+};
+```
 
 ## UI Structure
 - **Header:** Displays the screen title "My Appointments".
@@ -105,8 +121,44 @@ import type { IAppointment } from '@/types/api.types';
 - **Filter Chips:** Horizontal `ScrollView` with `TouchableOpacity` chips for status selection.
 
 ## API Integration
-- **Endpoint:** `GET /api/appointments/my` with query params.
-- **Hook:** `useGetMyAppointments(params)`.
+- **HTTP client:** `axios` instance from `api/config.ts` via `appointmentAPI.getMyAppointments`.
+- **Endpoint:** `GET /api/appointments/my` with query parameters.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Query parameters:**
+  - `search` - Optional string to search by service name
+  - `status` - Optional status filter ('pending', 'confirmed', 'completed', 'cancelled', 'no_show')
+  - `page` - Optional page number for pagination
+  - `limit` - Optional items per page
+- **Hook:** `useGetMyAppointments(params)` returns `{ data, isLoading, error, refetch, isFetching }`.
+- **Response contract:** `response.data.data.appointments` contains array of appointment objects.
+- **Response structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "appointments": [
+        {
+          "_id": "...",
+          "customerId": "...",
+          "staffId": "...",
+          "services": [...],
+          "startTime": "2026-02-01T09:00:00.000Z",
+          "endTime": "2026-02-01T10:00:00.000Z",
+          "status": "CONFIRMED",
+          "bookingFeeAmount": 500,
+          "remainingAmount": 1000,
+          "createdAt": "2026-01-20T00:00:00.000Z"
+        }
+      ],
+      "pagination": {
+        "currentPage": 1,
+        "totalPages": 1,
+        "totalAppointments": 5
+      }
+    }
+  }
+  ```
+- **Cache invalidation:** Query is automatically invalidated when appointments are created, updated, or cancelled via mutations.
 
 ## Components Used
 - `AppointmentCard`: Reusable card component displaying appointment with StatusBadge, icons, and formatted information.
@@ -128,10 +180,45 @@ import type { IAppointment } from '@/types/api.types';
 - **Floating Action Button:** Navigate to `/appointment/create` to start booking.
 
 ## Functions Involved
-- **`renderItem({ item })`:** Renders `AppointmentCard` component for each appointment item.
-- **`handleStatusFilter(status)`:** Updates the `filterStatus` state when a filter chip is pressed.
-- **`onRefresh()`:** Triggers the `refetch` function from the `useGetMyAppointments` hook for pull-to-refresh.
-- **`useMemo` for params:** Memoizes the query parameters object to prevent unnecessary re-renders.
+
+- **`renderItem`** — Renders `AppointmentCard` component for each appointment item in the FlatList.
+  ```tsx
+  const renderItem = ({ item }: { item: IAppointment }) => {
+    return <AppointmentCard appointment={item} />;
+  };
+  ```
+
+- **`handleStatusFilter`** — Updates the `filterStatus` state when a filter chip is pressed.
+  ```tsx
+  const handleStatusFilter = (status: string) => {
+    setFilterStatus(status);
+  };
+  ```
+
+- **`onRefresh`** — Triggers the `refetch` function from the `useGetMyAppointments` hook for pull-to-refresh.
+  ```tsx
+  const onRefresh = () => {
+    refetch();
+  };
+  ```
+
+- **`params` (memoized)** — Memoizes the query parameters object to prevent unnecessary re-renders and API calls.
+  ```tsx
+  const params = useMemo(() => ({
+    search: debouncedSearch || undefined,
+    status: filterStatus === 'all' ? undefined : filterStatus.toLowerCase(),
+  }), [debouncedSearch, filterStatus]);
+  ```
+
+- **Search debouncing effect** — Debounces search term to prevent excessive API calls while user types.
+  ```tsx
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  ```
 
 ## Implementation Details
 - **FlatList Optimization:** Uses `keyExtractor` and `renderItem` for performance.

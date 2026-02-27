@@ -30,6 +30,11 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 
 ## Context and State Management
+- **TanStack Query:**
+  - `useGetAllServices()` - Fetches all available services
+  - `useGetAllStaff()` - Fetches all staff members
+  - `useGetSlots()` - Fetches available time slots (only when `shouldFetchSlots` is true)
+  - `useCreateAppointment()` - Mutation for creating appointment
 - **Local State:**
   - `activeTab`: 'staff' | 'services' | 'slots' | 'summary'.
   - `selectedStaff`: User object or null.
@@ -40,6 +45,44 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
   - `showDatePicker`: Boolean for date picker modal visibility.
   - `shouldFetchSlots`: Boolean to control when slots are fetched (only after clicking "Check Availability").
   - `errorMessage`: String for tab-specific error messages.
+
+**`useCreateAppointment` hook (from `tanstack/useAppointments.ts`):**
+```tsx
+export const useCreateAppointment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (appointmentData: CreateAppointmentPayload) => {
+      const response = await appointmentAPI.create(appointmentData);
+      return response.data.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['appointments', 'my'] });
+      console.log('Appointment created successfully');
+    },
+    onError: (error: any) => {
+      console.error('Create appointment error:', error);
+    },
+  });
+};
+```
+
+**`useGetSlots` hook (from `tanstack/useAvailability.ts`):**
+```tsx
+export const useGetSlots = (params: GetSlotsParams, options?: { enabled?: boolean }) => {
+  return useQuery({
+    queryKey: ['slots', params],
+    queryFn: async () => {
+      const response = await availabilityAPI.getSlots(params);
+      return response.data.data;
+    },
+    enabled: options?.enabled !== false && !!params.staffId && !!params.date,
+    staleTime: DEFAULT_STALE_TIME,
+    gcTime: DEFAULT_GC_TIME,
+  });
+};
+```
 
 ## UI Structure
 - **Header:** Step indicator with numbered circles (1-4), progress bar, and "Step X of 4" in header right
@@ -257,19 +300,83 @@ const slots = slotsData?.slots || [];
 ```
 
 ### `handleBooking()`
-Triggers the `useCreateAppointment` mutation.
+Triggers the `useCreateAppointment` mutation with validation and navigation.
 ```tsx
 const handleBooking = async () => {
-  await createMutation.mutateAsync({
-    staffId: selectedStaff._id,
-    services: selectedServices,
-    startTime: selectedSlot.startTime,
-    endTime: selectedSlot.endTime,
-    notes
-  });
+  if (!selectedStaff || selectedServices.length === 0 || !selectedSlot) {
+    Alert.alert('Error', 'Please complete all steps before booking.');
+    return;
+  }
+
+  try {
+    await createMutation.mutateAsync({
+      staffId: selectedStaff._id,
+      services: selectedServices,
+      startTime: selectedSlot.startTime,
+      endTime: selectedSlot.endTime,
+      notes,
+    });
+    Toast.show({
+      type: 'success',
+      text1: 'Success!',
+      text2: 'Appointment booked successfully',
+      position: 'top',
+    });
+    router.push('/(authenticated)/appointment');
+  } catch {
+    // Error handled by mutation
+  }
 };
 ```
 
 ## API Integration
-- **Slots Query:** `GET /api/availability/slots?staffId=...&serviceIds=...&date=...`.
-- **Create Mutation:** `POST /api/appointments`.
+- **HTTP client:** `axios` instance from `api/config.ts` via `appointmentAPI.create` and `availabilityAPI.getSlots`.
+- **Slots Query Endpoint:** `GET /api/availability/slots` with query parameters.
+- **Query Parameters:**
+  - `staffId` - Required staff member ID
+  - `serviceIds` - Array of service IDs (comma-separated or array)
+  - `date` - Date string in ISO format (YYYY-MM-DD)
+- **Slots Response Structure:**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "slots": [
+        {
+          "startTime": "2026-02-01T09:00:00.000Z",
+          "endTime": "2026-02-01T10:00:00.000Z",
+          "available": true
+        }
+      ],
+      "message": "Available slots retrieved successfully"
+    }
+  }
+  ```
+- **Create Mutation Endpoint:** `POST /api/appointments`.
+- **Headers:** Automatically includes `Authorization: Bearer <token>` from token store.
+- **Create Payload:**
+  ```json
+  {
+    "staffId": "...",
+    "services": ["serviceId1", "serviceId2"],
+    "startTime": "2026-02-01T09:00:00.000Z",
+    "endTime": "2026-02-01T10:00:00.000Z",
+    "notes": "Optional notes"
+  }
+  ```
+- **Create Response Structure:**
+  ```json
+  {
+    "success": true,
+    "message": "Appointment created successfully",
+    "data": {
+      "appointment": {
+        "_id": "...",
+        "status": "PENDING",
+        "bookingFeeAmount": 500,
+        "remainingAmount": 1000
+      }
+    }
+  }
+  ```
+- **Cache invalidation:** After successful creation, queries for `['appointments']` and `['appointments', 'my']` are invalidated.
