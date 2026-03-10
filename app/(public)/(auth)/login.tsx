@@ -68,7 +68,7 @@ export default function LoginScreen() {
       }
 
       // Redirect to the authenticated home page using expo-router.
-      router.replace('/(public)/');
+      router.replace('/');
     } finally {
       // Always stop the loader.
       setIsSubmitting(false);

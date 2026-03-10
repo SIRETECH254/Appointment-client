@@ -39,7 +39,7 @@ export default function VerifyOTPScreen() {
 
       // Redirect to the authenticated profile page upon successful OTP verification.
       // NOTE: This navigation target might need to be adjusted based on app flow (e.g., to home page).
-      router.replace('/(authenticated)/(tabs)/profile');
+      router.replace('/');
     } finally {
       // Always stop the loader.
       setIsSubmitting(false);
