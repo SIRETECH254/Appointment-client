@@ -110,8 +110,10 @@ const PaymentStatusScreen = () => {
     socketRef.current.on('callback.received', (payload: any) => {
       console.log('M-Pesa Callback Received:', payload);
       // Backend payload structure: { CODE: number/string, message: string }
-      handleMpesaResultCode(payload.CODE, payload.message);
+      handleMpesaResultCode(payload.code, payload.message);
     });
+
+
 
     // Generic payment update event (from payment status changes)
     socketRef.current.on('payment.updated', (payload: any) => {

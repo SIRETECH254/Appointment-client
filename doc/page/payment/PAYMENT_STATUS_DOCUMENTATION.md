@@ -101,7 +101,7 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 ### M-Pesa Event Handling
 - **`callback.received`** event:
-  - Payload contains `CODE` and `message`.
+  - Payload contains `code` and `message`.
   - Result Code `0` → Set status to 'SUCCESS'.
   - Other codes → Set status to 'FAILED'.
 - **`payment.updated`** event:
